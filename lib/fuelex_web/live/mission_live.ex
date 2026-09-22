@@ -28,8 +28,8 @@ defmodule FuelexWeb.MissionLive do
   def handle_event("add-destiny", %{"world" => world}, socket)
       when is_map_key(@worlds, world) do
     if is_map_key(@actions, socket.assigns.form.params["first_action"]) do
-      stop = %{id: System.unique_integer([:positive]), world: world}
-      {:noreply, update_route(socket, stops(socket) ++ [stop])}
+      visit = %{id: System.unique_integer([:positive]), world: world}
+      {:noreply, update_route(socket, visits(socket) ++ [visit])}
     else
       {:noreply, socket}
     end
@@ -38,7 +38,7 @@ defmodule FuelexWeb.MissionLive do
   def handle_event("add-destiny", _params, socket), do: {:noreply, socket}
 
   def handle_event("remove-world", %{"id" => id}, socket) do
-    remaining = Enum.reject(stops(socket), &(to_string(&1.id) == id))
+    remaining = Enum.reject(visits(socket), &(to_string(&1.id) == id))
     {:noreply, update_route(socket, remaining)}
   end
 
@@ -47,7 +47,7 @@ defmodule FuelexWeb.MissionLive do
 
     if (is_map_key(@actions, params["first_action"]) or params["first_action"] == "") and
          (is_map_key(@actions, params["last_action"]) or params["last_action"] == "") do
-      route = stops(socket)
+      route = visits(socket)
       socket = assign(socket, form: to_form(params, as: :mission))
 
       if params["first_action"] == "" do
@@ -60,15 +60,15 @@ defmodule FuelexWeb.MissionLive do
     end
   end
 
-  # The explicit maneuvers remain the source of truth. Stop IDs only group the
+  # The explicit maneuvers remain the source of truth. Visit IDs only group the
   # actions belonging to a selected world for the convenience of the builder.
-  defp stops(socket) do
+  defp visits(socket) do
     socket.assigns.maneuvers
-    |> Enum.uniq_by(& &1.stop_id)
-    |> Enum.map(&%{id: &1.stop_id, world: &1.world})
+    |> Enum.uniq_by(& &1.visit_id)
+    |> Enum.map(&%{id: &1.visit_id, world: &1.world})
   end
 
-  defp update_route(socket, stops) do
+  defp update_route(socket, visits) do
     first_action =
       case socket.assigns.form.params["first_action"] do
         "" ->
@@ -82,12 +82,12 @@ defmodule FuelexWeb.MissionLive do
       end
 
     last_action = socket.assigns.form.params["last_action"]
-    last_index = length(stops) - 1
+    last_index = length(visits) - 1
 
     maneuvers =
-      stops
+      visits
       |> Enum.with_index()
-      |> Enum.flat_map(fn {stop, index} ->
+      |> Enum.flat_map(fn {visit, index} ->
         actions =
           cond do
             last_index == 0 ->
@@ -107,11 +107,11 @@ defmodule FuelexWeb.MissionLive do
 
         Enum.map(actions, fn action ->
           %{
-            id: "#{stop.id}-#{action}",
-            stop_id: stop.id,
-            stop_index: index,
+            id: "#{visit.id}-#{action}",
+            visit_id: visit.id,
+            visit_index: index,
             action: action,
-            world: stop.world
+            world: visit.world
           }
         end)
       end)
@@ -291,10 +291,10 @@ defmodule FuelexWeb.MissionLive do
                   id={id}
                   data-action={maneuver.action}
                   data-world={maneuver.world}
-                  data-stop-id={maneuver.stop_id}
+                  data-visit-id={maneuver.visit_id}
                   class={[
                     "rounded-xl border border-l-4 px-4 py-3 text-sm transition-colors",
-                    if(rem(maneuver.stop_index, 2) == 0,
+                    if(rem(maneuver.visit_index, 2) == 0,
                       do: "border-lime-300/20 border-l-lime-300 bg-lime-300/5 text-lime-300",
                       else: "border-sky-300/20 border-l-sky-300 bg-sky-300/5 text-sky-300"
                     )
@@ -307,7 +307,7 @@ defmodule FuelexWeb.MissionLive do
                       }
                       class={[
                         "size-4",
-                        if(rem(maneuver.stop_index, 2) == 0,
+                        if(rem(maneuver.visit_index, 2) == 0,
                           do: "text-lime-300",
                           else: "text-sky-300"
                         )
@@ -319,7 +319,7 @@ defmodule FuelexWeb.MissionLive do
                     id={"remove-world-#{maneuver.id}"}
                     type="button"
                     phx-click="remove-world"
-                    phx-value-id={maneuver.stop_id}
+                    phx-value-id={maneuver.visit_id}
                     aria-label={"Remove #{String.capitalize(maneuver.world)} visit"}
                     class="float-right rounded-md p-1 text-slate-400 transition hover:bg-rose-400/10 hover:text-rose-300 focus-visible:outline-2 focus-visible:outline-lime-300"
                   >
