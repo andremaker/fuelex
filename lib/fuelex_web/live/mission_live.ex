@@ -13,7 +13,7 @@ defmodule FuelexWeb.MissionLive do
      |> assign(
        page_title: "Mission planner",
        form:
-         to_form(%{"mass" => "", "first_action" => "", "last_action" => "land"},
+         to_form(%{"mass" => "", "first_action" => "", "last_action" => ""},
            as: :mission
          ),
        maneuvers: [],
@@ -203,7 +203,8 @@ defmodule FuelexWeb.MissionLive do
                 field={@form[:first_action]}
                 type="select"
                 label="First action"
-                prompt="Choose first action"
+                label_class="mb-1 block text-sm font-semibold"
+                prompt="Choose action"
                 options={[{"Launch", "launch"}, {"Land", "land"}]}
                 class="mission-input"
               />
@@ -211,6 +212,8 @@ defmodule FuelexWeb.MissionLive do
                 field={@form[:last_action]}
                 type="select"
                 label="Last action"
+                label_class="mb-1 block text-sm font-semibold"
+                prompt="Choose action"
                 options={[{"Land", "land"}, {"Launch", "launch"}]}
                 class="mission-input"
               />

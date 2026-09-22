@@ -243,7 +243,7 @@ defmodule FuelexWeb.CoreComponents do
     ~H"""
     <div class="fieldset mb-2">
       <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <span :if={@label} class={@label_class}>{@label}</span>
         <select
           id={@id}
           name={@name}
@@ -251,7 +251,7 @@ defmodule FuelexWeb.CoreComponents do
           multiple={@multiple}
           {@rest}
         >
-          <option :if={@prompt} value="">{@prompt}</option>
+          <option :if={@prompt} value="" selected disabled>{@prompt}</option>
           {Phoenix.HTML.Form.options_for_select(@options, @value)}
         </select>
       </label>
