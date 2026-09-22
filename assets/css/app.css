@@ -103,3 +103,20 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
+.mission-input {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+  background: #020617;
+  padding: 0.85rem 1rem;
+  color: #f1f5f9;
+  outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.mission-input:focus {
+  border-color: #bef264;
+  box-shadow: 0 0 0 3px #bef26420;
+}

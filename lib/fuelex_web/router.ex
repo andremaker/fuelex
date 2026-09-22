@@ -17,7 +17,7 @@ defmodule FuelexWeb.Router do
   scope "/", FuelexWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", MissionLive
   end
 
   # Other scopes may use custom stacks.

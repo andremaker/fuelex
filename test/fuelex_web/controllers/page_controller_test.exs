@@ -3,6 +3,11 @@ defmodule FuelexWeb.PageControllerTest do
 
   test "GET /", %{conn: conn} do
     conn = get(conn, ~p"/")
-    assert html_response(conn, 200) =~ "Peace of mind from prototype to production"
+
+    assert conn
+           |> html_response(200)
+           |> LazyHTML.from_document()
+           |> LazyHTML.query("#mission-form")
+           |> Enum.any?()
   end
 end

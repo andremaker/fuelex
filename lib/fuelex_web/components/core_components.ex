@@ -166,6 +166,7 @@ defmodule FuelexWeb.CoreComponents do
   attr :id, :any, default: nil
   attr :name, :any
   attr :label, :string, default: nil
+  attr :label_class, :string, default: "label mb-1"
   attr :value, :any
 
   attr :type, :string,
@@ -284,7 +285,7 @@ defmodule FuelexWeb.CoreComponents do
     ~H"""
     <div class="fieldset mb-2">
       <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <span :if={@label} class={@label_class}>{@label}</span>
         <input
           type={@type}
           name={@name}
