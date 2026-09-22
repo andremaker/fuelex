@@ -120,3 +120,31 @@
   border-color: #bef264;
   box-shadow: 0 0 0 3px #bef26420;
 }
+
+/* Reflow the planner based on its panel width, not the viewport width. */
+#flight-planner {
+  container-type: inline-size;
+  container-name: flight-planner;
+}
+
+.flight-planner-controls {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.flight-world-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+@container flight-planner (min-width: 22rem) {
+  .flight-action-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .flight-action-controls > fieldset + fieldset {
+    border-left: 1px solid rgb(255 255 255 / 0.1);
+    padding-left: 0.75rem;
+  }
+}

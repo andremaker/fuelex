@@ -71,7 +71,7 @@ defmodule FuelexWeb.FlightLiveTest do
       |> LazyHTML.attribute("data-visit-id")
 
     change(view, %{first_action: "land"})
-    assert has_element?(view, "#maneuvers > li[data-visit-id='#{visit_id}'][data-action='land']")
+    assert has_element?(view, "#maneuvers > li[data-visit-id='#{visit_id}'] [data-action='land']")
     assert has_element?(view, "#flight_first_action_land[checked]")
     render_click(view, "start-flight", %{"world" => "mars", "action" => "launch"})
     assert_steps(view, land: :earth, launch: :earth)
@@ -246,18 +246,31 @@ defmodule FuelexWeb.FlightLiveTest do
   end
 
   defp remove_visit(view, position) do
-    view |> element("#maneuvers > li:nth-child(#{position}) button") |> render_click()
+    [button_id] =
+      view
+      |> render()
+      |> LazyHTML.from_fragment()
+      |> LazyHTML.query("#maneuvers [data-action] button")
+      |> Enum.at(position - 1)
+      |> LazyHTML.attribute("id")
+
+    view |> element("##{button_id}") |> render_click()
   end
 
   defp assert_steps(view, steps) do
-    for {{action, world}, index} <- Enum.with_index(steps, 1) do
-      assert has_element?(
-               view,
-               "#maneuvers > li:nth-child(#{index})[data-action='#{action}'][data-world='#{world}']"
-             )
-    end
+    elements =
+      view
+      |> render()
+      |> LazyHTML.from_fragment()
+      |> LazyHTML.query("#maneuvers [data-action]")
+      |> Enum.to_list()
 
-    refute has_element?(view, "#maneuvers > li:nth-child(#{length(steps) + 1})")
+    assert length(elements) == length(steps)
+
+    for {element, {action, world}} <- Enum.zip(elements, steps) do
+      assert LazyHTML.attribute(element, "data-action") == [to_string(action)]
+      assert LazyHTML.attribute(element, "data-world") == [to_string(world)]
+    end
   end
 
   defp assert_fuel(view, mass, steps) do

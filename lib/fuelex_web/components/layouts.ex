@@ -36,13 +36,13 @@ defmodule FuelexWeb.Layouts do
   def app(assigns) do
     ~H"""
     <div class="min-h-screen bg-slate-950 text-slate-100">
-      <header class="mx-auto flex max-w-6xl items-center justify-between border-b border-white/10 px-6 py-6">
+      <header class="mx-auto flex max-w-[94rem] items-center justify-between border-b border-white/10 px-4 py-5 sm:px-6 xl:px-12">
         <.link navigate={~p"/"} class="flex items-center gap-3 font-semibold tracking-widest">
           <.icon name="hero-rocket-launch" class="size-6 text-lime-300" /> FUELEX
         </.link>
         <span class="text-xs tracking-widest text-slate-400">FLIGHT CONTROL</span>
       </header>
-      <main class="mx-auto max-w-6xl px-6 py-12 sm:py-20">
+      <main class="mx-auto max-w-[94rem] px-4 py-8 sm:px-6 sm:py-12 xl:px-12">
         {render_slot(@inner_block)}
       </main>
     </div>
