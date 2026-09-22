@@ -172,13 +172,13 @@ defmodule FuelexWeb.CoreComponents do
   attr :type, :string,
     default: "text",
     values: ~w(checkbox color date datetime-local email file month number password
-               search select tel text textarea time url week hidden)
+               radio search select tel text textarea time url week hidden)
 
   attr :field, Phoenix.HTML.FormField,
     doc: "a form field struct retrieved from the form, for example: @form[:email]"
 
   attr :errors, :list, default: []
-  attr :checked, :boolean, doc: "the checked flag for checkbox inputs"
+  attr :checked, :boolean, doc: "the checked flag for checkbox and radio inputs"
   attr :prompt, :string, default: nil, doc: "the prompt for select inputs"
   attr :options, :list, doc: "the options to pass to Phoenix.HTML.Form.options_for_select/2"
   attr :multiple, :boolean, default: false, doc: "the multiple flag for select inputs"
@@ -203,6 +203,25 @@ defmodule FuelexWeb.CoreComponents do
   def input(%{type: "hidden"} = assigns) do
     ~H"""
     <input type="hidden" id={@id} name={@name} value={@value} {@rest} />
+    """
+  end
+
+  def input(%{type: "radio"} = assigns) do
+    assigns = assign_new(assigns, :checked, fn -> false end)
+
+    ~H"""
+    <label for={@id} class={@label_class}>
+      <input
+        type="radio"
+        id={@id}
+        name={@name}
+        value={@value}
+        checked={@checked}
+        class={@class}
+        {@rest}
+      />
+      <span>{@label}</span>
+    </label>
     """
   end
 

@@ -3,48 +3,93 @@ defmodule FuelexWeb.FlightLiveTest do
 
   import Phoenix.LiveViewTest
 
-  test "starts with mass, independent endpoint selectors, and three world buttons", %{conn: conn} do
+  test "starts with mass and six starting actions without default endpoints", %{conn: conn} do
     {:ok, view, _} = live(conn, ~p"/")
-    assert has_element?(view, "#flight-form input[name='flight[mass]'][value='']")
-    assert has_element?(view, "#flight_first_action")
-    assert has_element?(view, "#flight_last_action")
+    assert has_element?(view, "#flight-form input[name='flight[mass]']")
+    assert has_element?(view, "#first-visit")
+    refute has_element?(view, "#action-controls")
+    refute has_element?(view, "#world-controls")
+    refute has_element?(view, "#flight-form select")
     assert has_element?(view, "#maneuvers-empty")
     assert has_element?(view, "#fuel-placeholder", "Insert flight data")
-    refute has_element?(view, "#flight-error")
 
-    for world <- ~w(earth moon mars) do
-      assert has_element?(view, "#add-destiny-#{world}[type='button'][disabled]")
+    for world <- ~w(earth moon mars), action <- ~w(launch land) do
+      assert has_element?(view, "#start-#{action}-#{world}[type='button']")
     end
   end
 
-  test "requires a first action before adding worlds and still validates mass", %{conn: conn} do
+  test "each starting button sets the first visit and synchronizes the radios", %{conn: conn} do
+    for world <- ~w(earth moon mars), action <- ~w(launch land) do
+      {:ok, view, _} = live(conn, ~p"/")
+      change(view, %{mass: "1000"})
+      start_flight(view, action, world)
+      assert_steps(view, [{String.to_existing_atom(action), String.to_existing_atom(world)}])
+      refute has_element?(view, "#first-visit")
+      assert has_element?(view, "#world-controls")
+      assert has_element?(view, "#flight_first_action_#{action}[type='radio'][checked]")
+      refute has_element?(view, "#flight_last_action input[checked]")
+      assert has_element?(view, "#flight_last_action_launch[type='radio'][required]")
+      assert has_element?(view, "#flight_last_action_land[type='radio'][required]")
+      assert has_element?(view, "#fuel-placeholder", "Choose last action")
+      refute has_element?(view, "#fuel-result")
+      refute has_element?(view, "#flight-form select")
+    end
+  end
+
+  test "starting cards preserve mass validation and unset last action", %{conn: conn} do
     {:ok, view, _} = live(conn, ~p"/")
-    assert has_element?(view, "#flight_first_action option[value=''][disabled]", "Choose action")
+    render_click(view, "start-flight", %{"world" => "venus", "action" => "launch"})
+    render_click(view, "start-flight", %{"world" => "earth", "action" => "orbit"})
     render_click(view, "add-destiny", %{"world" => "earth"})
     assert_steps(view, [])
     change(view, %{mass: "-10"})
     assert has_element?(view, "#flight-error")
+    start_flight(view, "land", "earth")
+    assert has_element?(view, "#flight-error")
     change(view, %{mass: "1000"})
-    assert has_element?(view, "#fuel-placeholder", "Choose first action")
-    refute has_element?(view, "#flight-error")
-
-    change(view, %{first_action: "land"})
-    refute has_element?(view, "#add-destiny-earth[disabled]")
-    add_worlds(view, ~w(earth))
-    assert_steps(view, land: :earth)
     assert has_element?(view, "#fuel-placeholder", "Choose last action")
-    refute has_element?(view, "#fuel-result")
+    refute has_element?(view, "#flight-error")
     change(view, %{last_action: "land"})
     assert_fuel(view, 1000, land: :earth)
-    change(view, %{first_action: "launch", last_action: "land"})
+    change(view, %{first_action: "launch"})
     assert_steps(view, launch: :earth)
-    assert has_element?(view, "#fuel-placeholder", "Add a landing destination")
+    assert_incomplete(view)
+  end
+
+  test "removing the last visit restores cards and starting again preserves last action", %{
+    conn: conn
+  } do
+    {:ok, view, _} = live(conn, ~p"/")
+    start_flight(view, "launch", "earth")
+    change(view, %{mass: "1000", last_action: "launch"})
+
+    [visit_id] =
+      view
+      |> render()
+      |> LazyHTML.from_fragment()
+      |> LazyHTML.query("#maneuvers > li")
+      |> LazyHTML.attribute("data-visit-id")
+
+    change(view, %{first_action: "land"})
+    assert has_element?(view, "#maneuvers > li[data-visit-id='#{visit_id}'][data-action='land']")
+    assert has_element?(view, "#flight_first_action_land[checked]")
+    render_click(view, "start-flight", %{"world" => "mars", "action" => "launch"})
+    assert_steps(view, land: :earth, launch: :earth)
+    remove_visit(view, 1)
+    assert has_element?(view, "#first-visit")
+    refute has_element?(view, "#action-controls")
+    start_flight(view, "land", "moon")
+    assert_steps(view, land: :moon, launch: :moon)
+    assert has_element?(view, "#flight_first_action_land[checked]")
+    assert has_element?(view, "#flight_last_action_launch[checked]")
+    assert_fuel(view, 1000, land: :moon, launch: :moon)
   end
 
   test "destinations generate explicit Apollo maneuvers and calculate immediately", %{conn: conn} do
     {:ok, view, _} = live(conn, ~p"/")
-    change(view, %{mass: "28801", first_action: "launch", last_action: "land"})
-    add_worlds(view, ~w(earth moon earth))
+    start_flight(view, "launch", "earth")
+    change(view, %{mass: "28801", last_action: "land"})
+    add_worlds(view, ~w(moon earth))
     assert_steps(view, launch: :earth, land: :moon, launch: :moon, land: :earth)
     assert has_element?(view, "#fuel-result[data-fuel='51898']")
     change(view, %{mass: "1000"})
@@ -55,8 +100,9 @@ defmodule FuelexWeb.FlightLiveTest do
     conn: conn
   } do
     {:ok, view, _} = live(conn, ~p"/")
-    change(view, %{mass: "1000", first_action: "land", last_action: "launch"})
-    add_worlds(view, ~w(earth moon))
+    start_flight(view, "land", "earth")
+    change(view, %{mass: "1000", last_action: "launch"})
+    add_worlds(view, ~w(moon))
     assert_steps(view, land: :earth, launch: :earth, land: :moon, launch: :moon)
     add_worlds(view, ~w(mars))
     steps = [land: :earth, launch: :earth, land: :moon, launch: :moon, land: :mars, launch: :mars]
@@ -77,8 +123,8 @@ defmodule FuelexWeb.FlightLiveTest do
     conn: conn
   } do
     {:ok, view, _} = live(conn, ~p"/")
-    change(view, %{mass: "1000", first_action: "launch", last_action: "land"})
-    add_worlds(view, ~w(earth))
+    start_flight(view, "launch", "earth")
+    change(view, %{mass: "1000", last_action: "land"})
     assert_steps(view, launch: :earth)
     assert_incomplete(view)
 
@@ -106,8 +152,8 @@ defmodule FuelexWeb.FlightLiveTest do
 
   test "complete endpoint combinations work with a single world", %{conn: conn} do
     {:ok, view, _} = live(conn, ~p"/")
-    change(view, %{first_action: "launch", last_action: "land"})
-    add_worlds(view, ~w(earth))
+    start_flight(view, "launch", "earth")
+    change(view, %{last_action: "land"})
 
     for {first, last, steps} <- [
           {"launch", "launch", [launch: :earth]},
@@ -122,8 +168,9 @@ defmodule FuelexWeb.FlightLiveTest do
 
   test "removing visits reconnects the route and preserves endpoint choices", %{conn: conn} do
     {:ok, view, _} = live(conn, ~p"/")
-    change(view, %{mass: "1000", first_action: "land", last_action: "launch"})
-    add_worlds(view, ~w(earth moon mars))
+    start_flight(view, "land", "earth")
+    change(view, %{mass: "1000", last_action: "launch"})
+    add_worlds(view, ~w(moon mars))
     remove_visit(view, 3)
     assert_steps(view, land: :earth, launch: :earth, land: :mars, launch: :mars)
     assert_fuel(view, 1000, land: :earth, launch: :earth, land: :mars, launch: :mars)
@@ -141,8 +188,9 @@ defmodule FuelexWeb.FlightLiveTest do
 
   test "consecutive repeated worlds are allowed and independently removable", %{conn: conn} do
     {:ok, view, _} = live(conn, ~p"/")
-    change(view, %{first_action: "launch", last_action: "land"})
-    add_worlds(view, ~w(moon moon moon))
+    start_flight(view, "launch", "moon")
+    change(view, %{last_action: "land"})
+    add_worlds(view, ~w(moon moon))
     assert_steps(view, launch: :moon, land: :moon, launch: :moon, land: :moon)
     remove_visit(view, 2)
     assert_steps(view, launch: :moon, land: :moon)
@@ -154,8 +202,9 @@ defmodule FuelexWeb.FlightLiveTest do
 
   test "missing input stays a prompt while invalid mass stays a form error", %{conn: conn} do
     {:ok, view, _} = live(conn, ~p"/")
-    change(view, %{mass: "1000", first_action: "launch", last_action: "land"})
-    assert has_element?(view, "#fuel-placeholder", "Add actions to your flight")
+    start_flight(view, "launch", "earth")
+    change(view, %{mass: "1000", last_action: "land"})
+    assert_incomplete(view)
     refute has_element?(view, "#flight-error")
 
     for mass <- ["0", "-10", "-0.5"] do
@@ -168,7 +217,6 @@ defmodule FuelexWeb.FlightLiveTest do
              )
     end
 
-    add_worlds(view, ~w(earth))
     assert has_element?(view, "#flight-error")
     change(view, %{mass: ""})
     assert has_element?(view, "#fuel-placeholder", "Insert spacecraft mass")
@@ -185,6 +233,10 @@ defmodule FuelexWeb.FlightLiveTest do
     assert has_element?(view, "#fuel-placeholder", "Add a landing destination")
     refute has_element?(view, "#fuel-result")
     refute has_element?(view, "#flight-error")
+  end
+
+  defp start_flight(view, action, world) do
+    view |> element("#start-#{action}-#{world}") |> render_click()
   end
 
   defp change(view, params), do: view |> form("#flight-form", flight: params) |> render_change()
