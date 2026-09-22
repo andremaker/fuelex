@@ -10,7 +10,7 @@ defmodule FuelexWeb.FlightLiveTest do
     refute has_element?(view, "#action-controls")
     refute has_element?(view, "#world-controls")
     refute has_element?(view, "#flight-form select")
-    assert has_element?(view, "#maneuvers-empty")
+    assert has_element?(view, "#actions-empty")
     assert has_element?(view, "#fuel-placeholder", "Insert flight data")
 
     for world <- ~w(earth moon mars), action <- ~w(launch land) do
@@ -67,11 +67,11 @@ defmodule FuelexWeb.FlightLiveTest do
       view
       |> render()
       |> LazyHTML.from_fragment()
-      |> LazyHTML.query("#maneuvers > li")
+      |> LazyHTML.query("#actions > li")
       |> LazyHTML.attribute("data-visit-id")
 
     change(view, %{first_action: "land"})
-    assert has_element?(view, "#maneuvers > li[data-visit-id='#{visit_id}'] [data-action='land']")
+    assert has_element?(view, "#actions > li[data-visit-id='#{visit_id}'] [data-action='land']")
     assert has_element?(view, "#flight_first_action_land[checked]")
     render_click(view, "start-flight", %{"world" => "mars", "action" => "launch"})
     assert_steps(view, land: :earth, launch: :earth)
@@ -85,7 +85,7 @@ defmodule FuelexWeb.FlightLiveTest do
     assert_fuel(view, 1000, land: :moon, launch: :moon)
   end
 
-  test "destinations generate explicit Apollo maneuvers and calculate immediately", %{conn: conn} do
+  test "destinations generate explicit Apollo actions and calculate immediately", %{conn: conn} do
     {:ok, view, _} = live(conn, ~p"/")
     start_flight(view, "launch", "earth")
     change(view, %{mass: "28801", last_action: "land"})
@@ -181,7 +181,7 @@ defmodule FuelexWeb.FlightLiveTest do
     assert_steps(view, land: :moon, launch: :moon)
     remove_visit(view, 1)
     assert_steps(view, [])
-    assert has_element?(view, "#maneuvers-empty")
+    assert has_element?(view, "#actions-empty")
     assert has_element?(view, "#fuel-placeholder", "Add actions to your flight")
     refute has_element?(view, "#flight-error")
   end
@@ -250,7 +250,7 @@ defmodule FuelexWeb.FlightLiveTest do
       view
       |> render()
       |> LazyHTML.from_fragment()
-      |> LazyHTML.query("#maneuvers [data-action] button")
+      |> LazyHTML.query("#actions [data-action] button")
       |> Enum.at(position - 1)
       |> LazyHTML.attribute("id")
 
@@ -262,7 +262,7 @@ defmodule FuelexWeb.FlightLiveTest do
       view
       |> render()
       |> LazyHTML.from_fragment()
-      |> LazyHTML.query("#maneuvers [data-action]")
+      |> LazyHTML.query("#actions [data-action]")
       |> Enum.to_list()
 
     assert length(elements) == length(steps)

@@ -13,18 +13,18 @@ defmodule FuelexWeb.FlightLive do
      |> assign(
        page_title: "Flight planner",
        form: to_form(%{}, as: :flight),
-       maneuvers: [],
+       actions: [],
        result: nil,
        placeholder: "Insert flight data",
        error: nil
      )
-     |> stream(:maneuvers, [])}
+     |> stream(:actions, [])}
   end
 
   @impl true
   def handle_event("start-flight", %{"action" => action, "world" => world}, socket)
       when is_map_key(@actions, action) and is_map_key(@worlds, world) do
-    if socket.assigns.maneuvers == [] do
+    if socket.assigns.actions == [] do
       params = Map.put(socket.assigns.form.params, "first_action", action)
       visit = %{id: System.unique_integer([:positive]), world: world}
 
@@ -40,7 +40,8 @@ defmodule FuelexWeb.FlightLive do
   def handle_event("start-flight", _params, socket), do: {:noreply, socket}
 
   def handle_event("add-destiny", %{"world" => world}, socket) when is_map_key(@worlds, world) do
-    if socket.assigns.maneuvers != [] and is_map_key(@actions, socket.assigns.form.params["first_action"]) do
+    if socket.assigns.actions != [] and
+         is_map_key(@actions, socket.assigns.form.params["first_action"]) do
       visit = %{id: System.unique_integer([:positive]), world: world}
       {:noreply, update_route(socket, visits(socket) ++ [visit])}
     else
@@ -86,10 +87,10 @@ defmodule FuelexWeb.FlightLive do
     end
   end
 
-  # The explicit maneuvers remain the source of truth. Visit IDs only group the
+  # The explicit actions remain the source of truth. Visit IDs only group the
   # actions belonging to a selected world for the convenience of the builder.
   defp visits(socket) do
-    socket.assigns.maneuvers
+    socket.assigns.actions
     |> Enum.uniq_by(& &1.visit_id)
     |> Enum.map(&%{id: &1.visit_id, world: &1.world})
   end
@@ -98,7 +99,7 @@ defmodule FuelexWeb.FlightLive do
     first_action =
       case socket.assigns.form.params["first_action"] do
         action when action in [nil, ""] ->
-          case socket.assigns.maneuvers do
+          case socket.assigns.actions do
             [first | _] -> first.action
             [] -> ""
           end
@@ -110,7 +111,7 @@ defmodule FuelexWeb.FlightLive do
     last_action = socket.assigns.form.params["last_action"]
     last_index = length(visits) - 1
 
-    maneuvers =
+    actions =
       visits
       |> Enum.with_index()
       |> Enum.flat_map(fn {visit, index} ->
@@ -143,8 +144,8 @@ defmodule FuelexWeb.FlightLive do
       end)
 
     socket
-    |> assign(maneuvers: maneuvers)
-    |> stream(:maneuvers, maneuvers, reset: true)
+    |> assign(actions: actions)
+    |> stream(:actions, actions, reset: true)
     |> calculate()
   end
 
@@ -155,7 +156,11 @@ defmodule FuelexWeb.FlightLive do
   end
 
   defp calculate_fuel(socket, mass_value) do
-    steps = Enum.map(socket.assigns.maneuvers, &{Map.fetch!(@actions, &1.action), Map.fetch!(@worlds, &1.world)})
+    steps =
+      Enum.map(
+        socket.assigns.actions,
+        &{Map.fetch!(@actions, &1.action), Map.fetch!(@worlds, &1.world)}
+      )
 
     result =
       with {mass, ""} <- parse_mass(mass_value) do
@@ -193,7 +198,7 @@ defmodule FuelexWeb.FlightLive do
         )
 
       {:error, _} ->
-        assign(socket, error: "Unable to calculate fuel for these maneuvers.")
+        assign(socket, error: "Unable to calculate fuel for these actions.")
     end
   end
 
@@ -238,9 +243,9 @@ defmodule FuelexWeb.FlightLive do
                 class="flight-input text-lg"
               />
 
-              <%= if @maneuvers == [] do %>
+              <%= if @actions == [] do %>
                 <fieldset id="first-visit">
-                  <legend class="text-xl font-semibold">First stop</legend>
+                  <legend class="text-xl font-semibold">First action</legend>
 
                   <div class="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
                     <div
@@ -254,14 +259,22 @@ defmodule FuelexWeb.FlightLive do
                       id={"first-visit-#{world}"}
                       class="min-w-0 rounded-xl border border-white/10 bg-slate-950/50 p-2 sm:p-3"
                     >
-                      <div class={["flex flex-col items-center gap-2 py-3 text-base font-semibold", color]}>
+                      <div class={[
+                        "flex flex-col items-center gap-2 py-3 text-base font-semibold",
+                        color
+                      ]}>
                         <.icon name={icon} class="size-6" />
                         {String.capitalize(world)}
                       </div>
 
                       <div class="mt-2 space-y-2">
                         <button
-                          :for={{action, icon} <- [{"launch", "hero-arrow-up"}, {"land", "hero-arrow-down"}]}
+                          :for={
+                            {action, icon} <- [
+                              {"launch", "hero-arrow-up"},
+                              {"land", "hero-arrow-down"}
+                            ]
+                          }
                           id={"start-#{action}-#{world}"}
                           type="button"
                           phx-click="start-flight"
@@ -271,8 +284,10 @@ defmodule FuelexWeb.FlightLive do
                           class={[
                             "flex min-h-11 w-full items-center justify-center gap-1 rounded-lg border px-2 py-2 text-base font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-95 sm:gap-2",
                             if(action == "launch",
-                              do: "border-lime-300/20 bg-lime-300/5 text-lime-300 hover:bg-lime-300/15 focus-visible:outline-lime-300",
-                              else: "border-sky-300/20 bg-sky-300/5 text-sky-300 hover:bg-sky-300/15 focus-visible:outline-sky-300"
+                              do:
+                                "border-lime-300/20 bg-lime-300/5 text-lime-300 hover:bg-lime-300/15 focus-visible:outline-lime-300",
+                              else:
+                                "border-sky-300/20 bg-sky-300/5 text-sky-300 hover:bg-sky-300/15 focus-visible:outline-sky-300"
                             )
                           ]}
                         >
@@ -285,9 +300,17 @@ defmodule FuelexWeb.FlightLive do
                 </fieldset>
               <% else %>
                 <div class="flight-planner-controls">
-                  <div id="action-controls" class="flight-action-controls grid min-w-0 content-start gap-4">
+                  <div
+                    id="action-controls"
+                    class="flight-action-controls grid min-w-0 content-start gap-4"
+                  >
                     <fieldset
-                      :for={{field, label} <- [{:first_action, "First action"}, {:last_action, "Last action"}]}
+                      :for={
+                        {field, label} <- [
+                          {:first_action, "First action"},
+                          {:last_action, "Last action"}
+                        ]
+                      }
                       id={"flight_#{field}"}
                     >
                       <legend class="text-xl font-semibold">{label}</legend>
@@ -310,7 +333,7 @@ defmodule FuelexWeb.FlightLive do
                   </div>
 
                   <fieldset class="flight-visit-controls min-w-0">
-                    <legend class="text-xl font-semibold">Add a visit</legend>
+                    <legend class="text-xl font-semibold">Add a route point</legend>
 
                     <div id="world-controls" class="flight-world-controls mt-3">
                       <button
@@ -328,12 +351,16 @@ defmodule FuelexWeb.FlightLive do
                         disabled={@form[:first_action].value == ""}
                         aria-label={"Add #{String.capitalize(world)}"}
                         class={[
-                          "flight-world-button flex min-h-24 min-w-0 flex-col items-center justify-center gap-2 rounded-xl border border-white/10 bg-slate-950/50 p-2 text-base font-semibold transition hover:border-lime-300/50 hover:bg-lime-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40",
+                          "flight-world-button flex min-h-24 min-w-0 items-center justify-center gap-3 rounded-xl border border-white/10 bg-slate-950/50 p-2 text-base font-semibold transition hover:border-lime-300/50 hover:bg-lime-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40",
                           color
                         ]}
                       >
-                        <.icon name={icon} class="size-6" />
-                        {String.capitalize(world)}
+                        <span aria-hidden="true" class="text-2xl font-bold leading-none">+</span>
+
+                        <div class="flex flex-col items-center gap-2">
+                          <.icon name={icon} class="size-6" />
+                          <span>{String.capitalize(world)}</span>
+                        </div>
                       </button>
                     </div>
                   </fieldset>
@@ -353,26 +380,26 @@ defmodule FuelexWeb.FlightLive do
 
           <section
             class="min-w-0 rounded-2xl border border-slate-700/50 bg-linear-to-br from-slate-900/60 to-slate-900/30 p-4 sm:p-5"
-            aria-labelledby="maneuvers-title"
+            aria-labelledby="actions-title"
           >
-            <h2 id="maneuvers-title" class="text-xl font-semibold">Route</h2>
+            <h2 id="actions-title" class="text-xl font-semibold">Route</h2>
 
             <p
-              :if={@maneuvers == []}
-              id="maneuvers-empty"
+              :if={@actions == []}
+              id="actions-empty"
               class="mt-4 rounded-xl border border-dashed border-slate-700 p-5 text-sm text-slate-400"
             >
               Choose a world to get started.
             </p>
 
             <ol
-              :if={@maneuvers != []}
-              id="maneuvers"
+              :if={@actions != []}
+              id="actions"
               phx-hook=".Sortable"
               class="mt-4 max-h-[60vh] space-y-2 overflow-y-auto pr-2"
             >
-              <%= for maneuvers <- Enum.chunk_by(@maneuvers, & &1.visit_id) do %>
-                <% route_point = hd(maneuvers) %>
+              <%= for actions <- Enum.chunk_by(@actions, & &1.visit_id) do %>
+                <% route_point = hd(actions) %>
 
                 <li
                   id={"route-point-#{route_point.visit_id}"}
@@ -410,10 +437,10 @@ defmodule FuelexWeb.FlightLive do
 
                   <div class="flex shrink-0 items-center gap-1.5">
                     <div
-                      :for={maneuver <- maneuvers}
-                      id={"maneuver-#{maneuver.id}"}
-                      data-action={maneuver.action}
-                      data-world={maneuver.world}
+                      :for={action <- actions}
+                      id={"action-#{action.id}"}
+                      data-action={action.action}
+                      data-world={action.world}
                       class={[
                         "flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm",
                         if(rem(route_point.visit_index, 2) == 0,
@@ -422,8 +449,13 @@ defmodule FuelexWeb.FlightLive do
                         )
                       ]}
                     >
-                      <.icon name={if(maneuver.action == "launch", do: "hero-arrow-up", else: "hero-arrow-down")} class="size-4" />
-                      {String.capitalize(maneuver.action)}
+                      <.icon
+                        name={
+                          if(action.action == "launch", do: "hero-arrow-up", else: "hero-arrow-down")
+                        }
+                        class="size-4"
+                      />
+                      {String.capitalize(action.action)}
                     </div>
                   </div>
 
@@ -432,7 +464,7 @@ defmodule FuelexWeb.FlightLive do
                     type="button"
                     phx-click="remove-world"
                     phx-value-id={route_point.visit_id}
-                    aria-label={"Remove #{String.capitalize(route_point.world)} visit"}
+                    aria-label={"Remove #{String.capitalize(route_point.world)} route point"}
                     class="ml-auto shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-400/10 hover:text-rose-300 focus-visible:outline-2 focus-visible:outline-lime-300"
                   >
                     <.icon name="hero-x-mark" class="size-5" />
@@ -461,7 +493,7 @@ defmodule FuelexWeb.FlightLive do
                   {format_fuel(@result)} <span class="text-xl text-slate-400">kg</span>
                 </p>
                 <p class="mt-3 text-sm leading-6 text-slate-400">
-                  Includes fuel for every maneuver and the additional fuel needed to carry it.
+                  Includes fuel for every action and the additional fuel needed to carry it.
                 </p>
               <% else %>
                 <p id="fuel-placeholder" class="mt-4 text-2xl font-medium [overflow-wrap:anywhere]">

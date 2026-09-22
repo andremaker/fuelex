@@ -27,25 +27,25 @@ defmodule Fuelex.FuelTest do
   end
 
   test "single landing includes fuel for its own fuel" do
-    assert Fuel.maneuver(28_801, {:land, :earth}) == {:ok, 13_447}
+    assert Fuel.action(28_801, {:land, :earth}) == {:ok, 13_447}
   end
 
   test "floors each recurrence rather than only the final sum" do
     # 1000 -> 378 -> 122 -> 17 -> negative
-    assert Fuel.maneuver(1000, {:launch, :earth}) == {:ok, 517}
+    assert Fuel.action(1000, {:launch, :earth}) == {:ok, 517}
   end
 
   test "stops at zero and negative additional fuel required" do
-    assert Fuel.maneuver(1, {:launch, :earth}) == {:ok, 0}
-    assert Fuel.maneuver(500, {:launch, :moon}) == {:ok, 1}
-    assert Fuel.maneuver(499, {:launch, :moon}) == {:ok, 0}
+    assert Fuel.action(1, {:launch, :earth}) == {:ok, 0}
+    assert Fuel.action(500, {:launch, :moon}) == {:ok, 1}
+    assert Fuel.action(499, {:launch, :moon}) == {:ok, 0}
   end
 
   test "supports positive fractional mass" do
-    assert Fuel.maneuver(1000.5, {:launch, :earth}) == {:ok, 519}
+    assert Fuel.action(1000.5, {:launch, :earth}) == {:ok, 519}
   end
 
-  test "earlier maneuvers carry later fuel and order matters" do
+  test "earlier actions carry later fuel and order matters" do
     assert Fuel.flight(1000, launch: :earth, land: :moon) == {:ok, 536}
     assert {:ok, launch_first} = Fuel.flight(1000, launch: :earth, land: :earth)
     assert {:ok, land_first} = Fuel.flight(1000, land: :earth, launch: :earth)
@@ -54,12 +54,12 @@ defmodule Fuelex.FuelTest do
 
   test "empty flights and single-step flights" do
     assert Fuel.flight(1000, []) == {:ok, 0}
-    assert Fuel.flight(1000, launch: :earth) == Fuel.maneuver(1000, {:launch, :earth})
+    assert Fuel.flight(1000, launch: :earth) == Fuel.action(1000, {:launch, :earth})
   end
 
   test "rejects invalid masses even for empty flights" do
     for mass <- [0, -1, -0.5, "", "1000", nil, :earth] do
-      assert Fuel.maneuver(mass, {:launch, :earth}) == {:error, :invalid_mass}
+      assert Fuel.action(mass, {:launch, :earth}) == {:error, :invalid_mass}
       assert Fuel.flight(mass, []) == {:error, :invalid_mass}
       assert Fuel.flight(mass, @apollo) == {:error, :invalid_mass}
     end
@@ -92,7 +92,7 @@ defmodule Fuelex.FuelTest do
 
   test "rejects unsupported actions, worlds, and malformed steps" do
     for step <- [{:orbit, :earth}, {:launch, :venus}, {"launch", "earth"}, :launch, {}] do
-      assert Fuel.maneuver(1000, step) == {:error, :invalid_step}
+      assert Fuel.action(1000, step) == {:error, :invalid_step}
       assert Fuel.flight(1000, [{:launch, :earth}, step]) == {:error, :invalid_step}
     end
 

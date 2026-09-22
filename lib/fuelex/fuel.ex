@@ -10,12 +10,12 @@ defmodule Fuelex.Fuel do
   @type step :: {:launch | :land, :earth | :moon | :mars}
   @type error :: :invalid_mass | :invalid_step | :invalid_steps | :invalid_sequence
 
-  @doc "Fuel for one maneuver, including the fuel needed to carry its own fuel."
-  @spec maneuver(number(), step()) :: {:ok, non_neg_integer()} | {:error, error()}
-  def maneuver(mass, step) do
+  @doc "Fuel for one action, including the fuel needed to carry its own fuel."
+  @spec action(number(), step()) :: {:ok, non_neg_integer()} | {:error, error()}
+  def action(mass, step) do
     with :ok <- validate_mass(mass),
          :ok <- validate_step(step) do
-      {:ok, maneuver_fuel(mass, step)}
+      {:ok, action_fuel(mass, step)}
     end
   end
 
@@ -34,7 +34,7 @@ defmodule Fuelex.Fuel do
         steps
         |> Enum.reverse()
         |> Enum.reduce(0, fn step, later_fuel ->
-          later_fuel + maneuver_fuel(mass + later_fuel, step)
+          later_fuel + action_fuel(mass + later_fuel, step)
         end)
 
       {:ok, fuel}
@@ -72,7 +72,7 @@ defmodule Fuelex.Fuel do
 
   defp validate_sequence(_), do: {:error, :invalid_sequence}
 
-  defp maneuver_fuel(mass, {action, world}) do
+  defp action_fuel(mass, {action, world}) do
     {coefficient, offset} = Map.fetch!(@actions, action)
     accumulate(mass, Map.fetch!(@gravities, world) * coefficient, offset, 0)
   end
