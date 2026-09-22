@@ -1,4 +1,4 @@
-defmodule FuelexWeb.MissionLive do
+defmodule FuelexWeb.FlightLive do
   use FuelexWeb, :live_view
 
   alias Fuelex.Fuel
@@ -11,10 +11,10 @@ defmodule FuelexWeb.MissionLive do
     {:ok,
      socket
      |> assign(
-       page_title: "Mission planner",
+       page_title: "Flight planner",
        form:
          to_form(%{"mass" => "", "first_action" => "", "last_action" => ""},
-           as: :mission
+           as: :flight
          ),
        maneuvers: [],
        result: nil,
@@ -42,13 +42,13 @@ defmodule FuelexWeb.MissionLive do
     {:noreply, update_route(socket, remaining)}
   end
 
-  def handle_event("calculate", %{"mission" => params}, socket) do
+  def handle_event("calculate", %{"flight" => params}, socket) do
     params = Map.merge(socket.assigns.form.params, params)
 
     if (is_map_key(@actions, params["first_action"]) or params["first_action"] == "") and
          (is_map_key(@actions, params["last_action"]) or params["last_action"] == "") do
       route = visits(socket)
-      socket = assign(socket, form: to_form(params, as: :mission))
+      socket = assign(socket, form: to_form(params, as: :flight))
 
       if params["first_action"] == "" do
         {:noreply, calculate(socket)}
@@ -140,7 +140,7 @@ defmodule FuelexWeb.MissionLive do
 
     result =
       with {mass, ""} <- parse_mass(mass_value) do
-        Fuel.mission(mass, steps)
+        Fuel.flight(mass, steps)
       else
         _ -> {:error, :invalid_mass}
       end
@@ -203,13 +203,13 @@ defmodule FuelexWeb.MissionLive do
           class="rounded-3xl border border-white/10 bg-slate-900 p-6 sm:p-8"
           aria-labelledby="planner-title"
         >
-          <h2 id="planner-title" class="text-xl font-semibold">Mission planner</h2>
+          <h2 id="planner-title" class="text-xl font-semibold">Flight planner</h2>
           <p class="mt-2 text-sm text-slate-400">
             Enter your spacecraft mass, then choose worlds in travel order.
           </p>
           <.form
             for={@form}
-            id="mission-form"
+            id="flight-form"
             phx-change="calculate"
             class="mt-6 space-y-6"
           >
@@ -220,7 +220,7 @@ defmodule FuelexWeb.MissionLive do
               label_class="mb-1 block text-sm font-semibold"
               step="any"
               required
-              class="mission-input"
+              class="flight-input"
             />
             <div class="grid gap-4 sm:grid-cols-2">
               <.input
@@ -230,7 +230,7 @@ defmodule FuelexWeb.MissionLive do
                 label_class="mb-1 block text-sm font-semibold"
                 prompt="Choose action"
                 options={[{"Launch", "launch"}, {"Land", "land"}]}
-                class="mission-input"
+                class="flight-input"
               />
               <.input
                 field={@form[:last_action]}
@@ -239,7 +239,7 @@ defmodule FuelexWeb.MissionLive do
                 label_class="mb-1 block text-sm font-semibold"
                 prompt="Choose action"
                 options={[{"Launch", "launch"}, {"Land", "land"}]}
-                class="mission-input"
+                class="flight-input"
               />
             </div>
             <fieldset aria-describedby="world-help">
@@ -279,7 +279,7 @@ defmodule FuelexWeb.MissionLive do
                 id="maneuvers-empty"
                 class="mt-3 rounded-xl border border-dashed border-slate-700 p-5 text-sm text-slate-400"
               >
-                Your mission is empty. Choose a world above to get started.
+                Your flight is empty. Choose a world above to get started.
               </p>
               <ol
                 id="maneuvers"
@@ -330,7 +330,7 @@ defmodule FuelexWeb.MissionLive do
             </section>
             <p
               :if={@error}
-              id="mission-error"
+              id="flight-error"
               role="alert"
               class="rounded-xl border border-rose-400/30 bg-rose-400/10 p-4 text-sm text-rose-200"
             >
@@ -361,7 +361,7 @@ defmodule FuelexWeb.MissionLive do
             <% else %>
               <p id="fuel-placeholder" class="mt-5 text-3xl font-medium">{@placeholder}</p>
               <p class="mt-4 text-sm leading-6 text-slate-400">
-                Calculate your mission to see the total fuel to load before launch.
+                Calculate your flight to see the total fuel to load before launch.
               </p>
             <% end %>
           </section>

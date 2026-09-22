@@ -20,13 +20,13 @@ defmodule Fuelex.Fuel do
   end
 
   @doc """
-  Total fuel loaded before departure. An empty mission needs zero fuel.
+  Total fuel loaded before departure. An empty flight needs zero fuel.
 
   Actions must alternate: a landing must be followed by a launch from that
   same world before another landing.
   """
-  @spec mission(number(), [step()]) :: {:ok, non_neg_integer()} | {:error, error()}
-  def mission(mass, steps) do
+  @spec flight(number(), [step()]) :: {:ok, non_neg_integer()} | {:error, error()}
+  def flight(mass, steps) do
     with :ok <- validate_mass(mass),
          :ok <- validate_steps(steps),
          :ok <- validate_sequence(steps) do

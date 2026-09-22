@@ -7,7 +7,7 @@ defmodule FuelexWeb.PageControllerTest do
     assert conn
            |> html_response(200)
            |> LazyHTML.from_document()
-           |> LazyHTML.query("#mission-form")
+           |> LazyHTML.query("#flight-form")
            |> Enum.any?()
   end
 end

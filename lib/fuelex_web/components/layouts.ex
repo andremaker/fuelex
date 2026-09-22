@@ -40,7 +40,7 @@ defmodule FuelexWeb.Layouts do
         <.link navigate={~p"/"} class="flex items-center gap-3 font-semibold tracking-widest">
           <.icon name="hero-rocket-launch" class="size-6 text-lime-300" /> FUELEX
         </.link>
-        <span class="text-xs tracking-widest text-slate-400">MISSION CONTROL</span>
+        <span class="text-xs tracking-widest text-slate-400">FLIGHT CONTROL</span>
       </header>
       <main class="mx-auto max-w-6xl px-6 py-12 sm:py-20">
         {render_slot(@inner_block)}

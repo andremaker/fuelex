@@ -104,7 +104,7 @@
 
 /* This file is for your main application CSS */
 
-.mission-input {
+.flight-input {
   display: block;
   width: 100%;
   margin-top: 0.5rem;
@@ -116,7 +116,7 @@
   outline: none;
   transition: border-color 150ms, box-shadow 150ms;
 }
-.mission-input:focus {
+.flight-input:focus {
   border-color: #bef264;
   box-shadow: 0 0 0 3px #bef26420;
 }

@@ -1,16 +1,16 @@
-defmodule FuelexWeb.MissionLiveTest do
+defmodule FuelexWeb.FlightLiveTest do
   use FuelexWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
 
   test "starts with mass, independent endpoint selectors, and three world buttons", %{conn: conn} do
     {:ok, view, _} = live(conn, ~p"/")
-    assert has_element?(view, "#mission-form input[name='mission[mass]'][value='']")
-    assert has_element?(view, "#mission_first_action")
-    assert has_element?(view, "#mission_last_action")
+    assert has_element?(view, "#flight-form input[name='flight[mass]'][value='']")
+    assert has_element?(view, "#flight_first_action")
+    assert has_element?(view, "#flight_last_action")
     assert has_element?(view, "#maneuvers-empty")
     assert has_element?(view, "#fuel-placeholder", "Insert flight data")
-    refute has_element?(view, "#mission-error")
+    refute has_element?(view, "#flight-error")
 
     for world <- ~w(earth moon mars) do
       assert has_element?(view, "#add-destiny-#{world}[type='button'][disabled]")
@@ -19,14 +19,14 @@ defmodule FuelexWeb.MissionLiveTest do
 
   test "requires a first action before adding worlds and still validates mass", %{conn: conn} do
     {:ok, view, _} = live(conn, ~p"/")
-    assert has_element?(view, "#mission_first_action option[value=''][disabled]", "Choose action")
+    assert has_element?(view, "#flight_first_action option[value=''][disabled]", "Choose action")
     render_click(view, "add-destiny", %{"world" => "earth"})
     assert_steps(view, [])
     change(view, %{mass: "-10"})
-    assert has_element?(view, "#mission-error")
+    assert has_element?(view, "#flight-error")
     change(view, %{mass: "1000"})
     assert has_element?(view, "#fuel-placeholder", "Choose first action")
-    refute has_element?(view, "#mission-error")
+    refute has_element?(view, "#flight-error")
 
     change(view, %{first_action: "land"})
     refute has_element?(view, "#add-destiny-earth[disabled]")
@@ -136,7 +136,7 @@ defmodule FuelexWeb.MissionLiveTest do
     assert_steps(view, [])
     assert has_element?(view, "#maneuvers-empty")
     assert has_element?(view, "#fuel-placeholder", "Add actions to your flight")
-    refute has_element?(view, "#mission-error")
+    refute has_element?(view, "#flight-error")
   end
 
   test "consecutive repeated worlds are allowed and independently removable", %{conn: conn} do
@@ -156,38 +156,38 @@ defmodule FuelexWeb.MissionLiveTest do
     {:ok, view, _} = live(conn, ~p"/")
     change(view, %{mass: "1000", first_action: "launch", last_action: "land"})
     assert has_element?(view, "#fuel-placeholder", "Add actions to your flight")
-    refute has_element?(view, "#mission-error")
+    refute has_element?(view, "#flight-error")
 
     for mass <- ["0", "-10", "-0.5"] do
       change(view, %{mass: mass})
 
       assert has_element?(
                view,
-               "#mission-form #mission-error",
+               "#flight-form #flight-error",
                "Enter a positive spacecraft mass."
              )
     end
 
     add_worlds(view, ~w(earth))
-    assert has_element?(view, "#mission-error")
+    assert has_element?(view, "#flight-error")
     change(view, %{mass: ""})
     assert has_element?(view, "#fuel-placeholder", "Insert spacecraft mass")
-    refute has_element?(view, "#mission-error")
+    refute has_element?(view, "#flight-error")
     add_worlds(view, ~w(moon))
     assert has_element?(view, "#fuel-placeholder", "Insert spacecraft mass")
     refute has_element?(view, "#fuel-result")
     change(view, %{mass: "1000"})
     assert_fuel(view, 1000, launch: :earth, land: :moon)
-    refute has_element?(view, "#mission-error")
+    refute has_element?(view, "#flight-error")
   end
 
   defp assert_incomplete(view) do
     assert has_element?(view, "#fuel-placeholder", "Add a landing destination")
     refute has_element?(view, "#fuel-result")
-    refute has_element?(view, "#mission-error")
+    refute has_element?(view, "#flight-error")
   end
 
-  defp change(view, params), do: view |> form("#mission-form", mission: params) |> render_change()
+  defp change(view, params), do: view |> form("#flight-form", flight: params) |> render_change()
 
   defp add_worlds(view, worlds) do
     for world <- worlds, do: view |> element("#add-destiny-#{world}") |> render_click()
@@ -209,7 +209,7 @@ defmodule FuelexWeb.MissionLiveTest do
   end
 
   defp assert_fuel(view, mass, steps) do
-    {:ok, fuel} = Fuelex.Fuel.mission(mass, steps)
+    {:ok, fuel} = Fuelex.Fuel.flight(mass, steps)
     assert has_element?(view, "#fuel-result[data-fuel='#{fuel}']")
   end
 end
