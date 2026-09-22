@@ -46,7 +46,7 @@ defmodule FuelexWeb.MissionLive do
     params = Map.merge(socket.assigns.form.params, params)
 
     if (is_map_key(@actions, params["first_action"]) or params["first_action"] == "") and
-         is_map_key(@actions, params["last_action"]) do
+         (is_map_key(@actions, params["last_action"]) or params["last_action"] == "") do
       route = stops(socket)
       socket = assign(socket, form: to_form(params, as: :mission))
 
@@ -69,7 +69,18 @@ defmodule FuelexWeb.MissionLive do
   end
 
   defp update_route(socket, stops) do
-    first_action = socket.assigns.form.params["first_action"]
+    first_action =
+      case socket.assigns.form.params["first_action"] do
+        "" ->
+          case socket.assigns.maneuvers do
+            [first | _] -> first.action
+            [] -> ""
+          end
+
+        action ->
+          action
+      end
+
     last_action = socket.assigns.form.params["last_action"]
     last_index = length(stops) - 1
 
@@ -80,9 +91,9 @@ defmodule FuelexWeb.MissionLive do
         actions =
           cond do
             last_index == 0 ->
-              if first_action == last_action,
-                do: [first_action],
-                else: [first_action, last_action]
+              if first_action == "land" and last_action == "launch",
+                do: ["land", "launch"],
+                else: [first_action]
 
             index == 0 ->
               if first_action == "land", do: ["land", "launch"], else: ["launch"]
@@ -95,7 +106,13 @@ defmodule FuelexWeb.MissionLive do
           end
 
         Enum.map(actions, fn action ->
-          %{id: "#{stop.id}-#{action}", stop_id: stop.id, action: action, world: stop.world}
+          %{
+            id: "#{stop.id}-#{action}",
+            stop_id: stop.id,
+            stop_index: index,
+            action: action,
+            world: stop.world
+          }
         end)
       end)
 
@@ -134,8 +151,15 @@ defmodule FuelexWeb.MissionLive do
           socket.assigns.form.params["first_action"] == "" ->
             assign(socket, placeholder: "Choose first action")
 
+          socket.assigns.form.params["last_action"] == "" ->
+            assign(socket, placeholder: "Choose last action")
+
           steps == [] ->
             assign(socket, placeholder: "Add actions to your flight")
+
+          match?([{:launch, _}], steps) and
+              socket.assigns.form.params["last_action"] == "land" ->
+            assign(socket, placeholder: "Add a landing destination")
 
           true ->
             assign(socket, result: fuel)
@@ -214,7 +238,7 @@ defmodule FuelexWeb.MissionLive do
                 label="Last action"
                 label_class="mb-1 block text-sm font-semibold"
                 prompt="Choose action"
-                options={[{"Land", "land"}, {"Launch", "launch"}]}
+                options={[{"Launch", "launch"}, {"Land", "land"}]}
                 class="mission-input"
               />
             </div>
@@ -268,16 +292,28 @@ defmodule FuelexWeb.MissionLive do
                   data-action={maneuver.action}
                   data-world={maneuver.world}
                   data-stop-id={maneuver.stop_id}
-                  class="rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm"
+                  class={[
+                    "rounded-xl border border-l-4 px-4 py-3 text-sm transition-colors",
+                    if(rem(maneuver.stop_index, 2) == 0,
+                      do: "border-lime-300/20 border-l-lime-300 bg-lime-300/5 text-lime-300",
+                      else: "border-sky-300/20 border-l-sky-300 bg-sky-300/5 text-sky-300"
+                    )
+                  ]}
                 >
                   <span class="ml-1 inline-flex items-center gap-2 text-slate-100">
                     <.icon
                       name={
                         if(maneuver.action == "launch", do: "hero-arrow-up", else: "hero-arrow-down")
                       }
-                      class="size-4 text-lime-300"
+                      class={[
+                        "size-4",
+                        if(rem(maneuver.stop_index, 2) == 0,
+                          do: "text-lime-300",
+                          else: "text-sky-300"
+                        )
+                      ]}
                     />
-                    {String.capitalize(maneuver.action)} {String.capitalize(maneuver.world)}
+                    {String.capitalize(maneuver.action)} - {String.capitalize(maneuver.world)}
                   </span>
                   <button
                     id={"remove-world-#{maneuver.id}"}
