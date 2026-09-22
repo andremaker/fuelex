@@ -55,6 +55,19 @@ defmodule FuelexWeb.FlightLive do
     {:noreply, update_route(socket, remaining)}
   end
 
+  def handle_event("reorder-route", %{"from" => from, "to" => to}, socket) do
+    route = visits(socket)
+    from_index = Enum.find_index(route, &(to_string(&1.id) == from))
+    to_index = Enum.find_index(route, &(to_string(&1.id) == to))
+
+    if from_index != nil and to_index != nil and from_index != to_index do
+      {visit, route} = List.pop_at(route, from_index)
+      {:noreply, update_route(socket, List.insert_at(route, to_index, visit))}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_event("calculate", %{"flight" => params}, socket) do
     params = Map.merge(socket.assigns.form.params, params)
 
@@ -352,15 +365,21 @@ defmodule FuelexWeb.FlightLive do
               Choose a world to get started.
             </p>
 
-            <ol :if={@maneuvers != []} id="maneuvers" class="mt-4 space-y-2">
+            <ol
+              :if={@maneuvers != []}
+              id="maneuvers"
+              phx-hook=".Sortable"
+              class="mt-4 max-h-[60vh] space-y-2 overflow-y-auto pr-2"
+            >
               <%= for maneuvers <- Enum.chunk_by(@maneuvers, & &1.visit_id) do %>
                 <% route_point = hd(maneuvers) %>
 
                 <li
                   id={"route-point-#{route_point.visit_id}"}
                   data-visit-id={route_point.visit_id}
+                  draggable="true"
                   class={[
-                    "flex min-w-0 items-center gap-2.5 rounded-xl border px-3 py-2.5 transition-colors",
+                    "flex min-w-0 cursor-grab items-center gap-2.5 rounded-xl border px-3 py-2.5 transition-colors active:cursor-grabbing",
                     if(rem(route_point.visit_index, 2) == 0,
                       do: "border-lime-300/40 bg-lime-300/10",
                       else: "border-sky-400/40 bg-sky-400/10"
@@ -453,6 +472,38 @@ defmodule FuelexWeb.FlightLive do
           </aside>
         </div>
       </div>
+
+      <script :type={Phoenix.LiveView.ColocatedHook} name=".Sortable">
+        export default {
+          mounted() {
+            this.draggedId = null
+
+            this.el.addEventListener("dragstart", event => {
+              const item = event.target.closest("[data-visit-id]")
+              if (!item) return
+              this.draggedId = item.dataset.visitId
+              event.dataTransfer.effectAllowed = "move"
+              item.classList.add("opacity-50")
+            })
+
+            this.el.addEventListener("dragend", event => {
+              event.target.closest("[data-visit-id]")?.classList.remove("opacity-50")
+              this.draggedId = null
+            })
+
+            this.el.addEventListener("dragover", event => {
+              if (event.target.closest("[data-visit-id]")) event.preventDefault()
+            })
+
+            this.el.addEventListener("drop", event => {
+              const item = event.target.closest("[data-visit-id]")
+              if (!item || !this.draggedId) return
+              event.preventDefault()
+              this.pushEvent("reorder-route", {from: this.draggedId, to: item.dataset.visitId})
+            })
+          }
+        }
+      </script>
     </Layouts.app>
     """
   end
