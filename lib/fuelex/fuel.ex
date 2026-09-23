@@ -4,6 +4,8 @@ defmodule Fuelex.Fuel do
   chronological order. Fuel for later actions is carried through earlier actions.
   """
 
+  # Exact decimal constants for integer masses, avoiding floating-point
+  # rounding at floor boundaries. Fractional masses use the same recurrence.
   @gravities %{earth: 9807, moon: 1620, mars: 3711}
   @actions %{launch: {42, 33}, land: {33, 42}}
 
@@ -82,8 +84,6 @@ defmodule Fuelex.Fuel do
   end
 
   defp accumulate(mass, factor, offset, total) do
-    # Exact decimal constants for integer masses, avoiding floating-point
-    # rounding at floor boundaries. Fractional masses use the same recurrence.
     next =
       if is_integer(mass),
         do: div(mass * factor, 1_000_000) - offset,
