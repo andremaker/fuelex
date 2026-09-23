@@ -19,8 +19,7 @@ defmodule FuelexWeb.FlightLive do
        result: nil,
        placeholder: "Insert flight data",
        error: nil
-     )
-     |> stream(:actions, [])}
+     )}
   end
 
   @impl true
@@ -147,7 +146,6 @@ defmodule FuelexWeb.FlightLive do
 
     socket
     |> assign(actions: actions)
-    |> stream(:actions, actions, reset: true)
     |> calculate()
   end
 
