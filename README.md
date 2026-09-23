@@ -161,6 +161,13 @@ The calculation accepts fractional spacecraft mass, although the repeated use of
 
 The requirements do not clearly establish that fueling must happen on Earth or immediately before a launch, so I did not constrain the first action to always be `launch` or the initial world to always be Earth. While that may seem unusual at first, space-based refueling already exists in limited forms and is expected to become more relevant over time, so a modeled flight could legitimately begin after fueling in orbit and have `land` as its first surface action. Enforcing “flight must start with launch from Earth” would therefore introduce a constraint that is not stated in the requirements. In case it should in fact be supported, it brings a related modeling question: if departure occurs from an orbital station or another off-surface location, how that departure should be represented when `launch` is defined using a planet’s surface gravity. In a real project, I would clarify the assumed fueling location and how off-surface departures should be modeled before considering the behavior complete.
 
+#### NASA branding
+
+Although the exercise places the developer in the role of a NASA contractor, NASA’s branding guidelines do not allow contractors to use NASA identifiers simply because they are working for the agency. Public use of the NASA Insignia (“meatball”), Logotype (“worm”), Seal, and other NASA emblems requires prior NASA review and approval, and contractor use must not imply sponsorship or endorsement beyond what has actually been authorized.
+
+For that reason, I kept the initial Fuelex branding neutral and easily replaceable rather than assuming permission to use official NASA branding. In a real engagement, I would obtain the approved assets and usage guidance before introducing NASA identifiers into the application.
+
+
 ### Suggestions
 A few suggestions I would give in a real scenario.
 
