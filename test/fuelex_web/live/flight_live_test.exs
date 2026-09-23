@@ -171,10 +171,10 @@ defmodule FuelexWeb.FlightLiveTest do
     start_flight(view, "land", "earth")
     change(view, %{mass: "1000", last_action: "launch"})
     add_worlds(view, ~w(moon mars))
-    remove_visit(view, 3)
+    remove_visit(view, 2)
     assert_steps(view, land: :earth, launch: :earth, land: :mars, launch: :mars)
     assert_fuel(view, 1000, land: :earth, launch: :earth, land: :mars, launch: :mars)
-    remove_visit(view, 4)
+    remove_visit(view, 2)
     assert_steps(view, land: :earth, launch: :earth)
     add_worlds(view, ~w(moon))
     remove_visit(view, 1)
@@ -250,7 +250,7 @@ defmodule FuelexWeb.FlightLiveTest do
       view
       |> render()
       |> LazyHTML.from_fragment()
-      |> LazyHTML.query("#actions [data-action] button")
+      |> LazyHTML.query("#actions > li[data-visit-id] > button[phx-click='remove-world']")
       |> Enum.at(position - 1)
       |> LazyHTML.attribute("id")
 

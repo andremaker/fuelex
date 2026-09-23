@@ -32,24 +32,29 @@ defmodule FuelexWeb.Layouts do
     doc: "the current [scope](https://phoenix.hexdocs.pm/scopes.html)"
 
   slot :inner_block, required: true
+  slot :page_header
 
   def app(assigns) do
     ~H"""
-    <div class="min-h-screen bg-slate-950 text-slate-100">
-      <header class="mx-auto flex max-w-[94rem] items-center justify-between border-b border-white/10 px-4 py-5 sm:px-6 xl:px-12">
-        <.link navigate={~p"/"} class="flex items-center gap-3 font-semibold tracking-widest">
-          <.icon name="hero-rocket-launch" class="size-6 text-lime-300" /> FUELEX
-        </.link>
-        <span class="text-xs tracking-widest text-slate-400">FLIGHT CONTROL</span>
+    <div class="min-h-screen bg-white text-neutral-800">
+      <header class="bg-[#101316] text-white">
+        <div class="mx-auto flex max-w-[94rem] items-center justify-between px-4 py-3">
+          <.link navigate={~p"/"} class="flex items-center gap-3 text-lg font-semibold tracking-wide transition-colors hover:text-sky-200">
+            <.icon name="hero-rocket-launch" class="size-8 text-[#2491cb]" /> FUELEX
+          </.link>
+        </div>
+        <div :if={@page_header != []} class="mx-auto max-w-[94rem] px-4 pb-6 pt-3">
+          {render_slot(@page_header)}
+        </div>
       </header>
-      <main class="mx-auto max-w-[94rem] px-4 py-8 sm:px-6 sm:py-12 xl:px-12">
+      <main class="mx-auto max-w-[94rem] px-4 py-4">
         {render_slot(@inner_block)}
       </main>
     </div>
 
     <.flash_group flash={@flash} />
     """
-  end
+end
 
   @doc """
   Shows the flash group with standard titles and content.

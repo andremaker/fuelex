@@ -104,21 +104,89 @@
 
 /* This file is for your main application CSS */
 
+.flight-header-font {
+  font-family: "Arial Narrow", "Liberation Sans Narrow", "Roboto Condensed", sans-serif;
+  font-stretch: condensed;
+}
+
+body {
+  color-scheme: light;
+  background: #fff;
+}
+
+.flight-button,
+.flight-action-option {
+  border: 0;
+  background: rgb(0 0 0 / 7%);
+  color: #262626;
+  transition: background-color 150ms, color 150ms, transform 150ms;
+}
+
+.flight-button:enabled:hover,
+.flight-action-option:hover,
+.flight-action-option:has(:checked):hover {
+  background: #ccc;
+  color: #171717;
+}
+
+.flight-button:focus-visible {
+  outline: 2px solid #176b9b;
+  outline-offset: 3px;
+}
+
+.flight-action-option:has(:checked) {
+  background: #525252;
+  color: #fff;
+}
+
 .flight-input {
   display: block;
   width: 100%;
   margin-top: 0.5rem;
-  border: 1px solid #334155;
-  border-radius: 0.75rem;
-  background: #020617;
-  padding: 0.85rem 1rem;
-  color: #f1f5f9;
+  border: 1px solid #5c6269;
+  border-radius: 0;
+  background: #fff;
+  padding: 0.375rem 0.5rem;
+  color: #262626;
   outline: none;
-  transition: border-color 150ms, box-shadow 150ms;
+  transition: border-color 150ms;
 }
+
+.flight-input::placeholder {
+  color: #6b6b6b;
+  opacity: 1;
+}
+
 .flight-input:focus {
-  border-color: #bef264;
-  box-shadow: 0 0 0 3px #bef26420;
+  border-color: #5c6269;
+  outline: none;
+}
+
+/* Inset dividers so they remain separate from the heading and neighboring lines. */
+#flight-workspace > * {
+  position: relative;
+}
+
+#flight-workspace > * + *::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 1.5rem;
+  right: 1.5rem;
+  height: 1px;
+  background: rgb(0 0 0 / 20%);
+  pointer-events: none;
+}
+
+@media (min-width: 80rem) {
+  #flight-workspace > * + *::before {
+    top: 1.5rem;
+    bottom: 1.5rem;
+    left: 0;
+    right: auto;
+    width: 1px;
+    height: auto;
+  }
 }
 
 /* Reflow the planner based on its panel width, not the viewport width. */
@@ -138,13 +206,31 @@
   gap: 0.5rem;
 }
 
+.flight-first-worlds > * + *::before {
+  content: "";
+  position: absolute;
+  top: 0.75rem;
+  bottom: 0.75rem;
+  left: 0;
+  width: 1px;
+  background: rgb(0 0 0 / 20%);
+  pointer-events: none;
+}
+
+.flight-add-icon {
+  mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000);
+  mask-size: 100% 3px, 3px 100%;
+  mask-position: center;
+  mask-repeat: no-repeat;
+}
+
 @container flight-planner (min-width: 22rem) {
   .flight-action-controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .flight-action-controls > fieldset + fieldset {
-    border-left: 1px solid rgb(255 255 255 / 0.1);
+    border-left: 1px solid rgb(0 0 0 / 20%);
     padding-left: 0.75rem;
   }
 }
