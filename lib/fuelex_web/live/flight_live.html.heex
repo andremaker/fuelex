@@ -1,0 +1,236 @@
+<Layouts.app flash={@flash}>
+  <:page_header>
+    <div class="flight-header-font sm:px-[2%]">
+      <h1 class="text-3xl font-semibold leading-tight text-[#2491cb] sm:text-4xl">
+        Space Travel Fuel Calculator
+      </h1>
+      <p class="mt-3 max-w-4xl text-lg leading-relaxed text-[#a4aab3] sm:text-xl">
+        Build an interplanetary itinerary and calculate the fuel you need on board before liftoff.
+      </p>
+    </div>
+  </:page_header>
+  <div id="flight-content" class="w-full font-sans">
+    <div
+      id="flight-workspace"
+      class="grid w-full min-w-0 xl:grid-cols-[minmax(400px,0.95fr)_minmax(420px,1fr)_minmax(300px,0.75fr)]"
+    >
+      <section
+        id="flight-planner"
+        class="min-w-0 px-4 py-3 sm:px-3"
+      >
+        <.form for={@form} id="flight-form" phx-change="calculate" class="space-y-4">
+          <.input
+            field={@form[:mass]}
+            type="number"
+            label="Spacecraft mass (kg)"
+            placeholder="e.g. 10,000"
+            label_class="mb-2 block text-lg font-semibold"
+            step="any"
+            required
+            class="flight-input text-base"
+          />
+
+          <%= if @actions == [] do %>
+            <fieldset id="first-action">
+              <legend class="text-lg font-semibold">First action</legend>
+
+              <div class="flight-first-worlds mt-3 grid grid-cols-3 bg-[#e8e8e8]">
+                <div
+                  :for={world <- ~w(earth moon mars)}
+                  id={"first-action-#{world}"}
+                  class="relative min-w-0 p-2"
+                >
+                  <.world world={world} layout={:stacked} />
+
+                  <div class="mt-1 space-y-1">
+                    <button
+                      :for={
+                        {action, icon} <- [
+                          {"launch", "hero-arrow-up"},
+                          {"land", "hero-arrow-down"}
+                        ]
+                      }
+                      id={"start-#{action}-#{world}"}
+                      type="button"
+                      phx-click="start-flight"
+                      phx-value-action={action}
+                      phx-value-world={world}
+                      aria-label={"#{String.capitalize(action)} on #{String.capitalize(world)}"}
+                      class="flight-button flex min-h-9 w-full items-center justify-center gap-1 rounded-none px-2 py-1.5 text-sm font-medium active:scale-95"
+                    >
+                      <.icon name={icon} class="size-4" />
+                      {String.capitalize(action)}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </fieldset>
+          <% else %>
+            <div class="flight-planner-controls">
+              <div
+                id="action-controls"
+                class="grid min-w-0 grid-cols-2"
+              >
+                <fieldset
+                  :for={
+                    {field, label} <- [
+                      {:first_action, "First action"},
+                      {:last_action, "Last action"}
+                    ]
+                  }
+                  id={"flight_#{field}"}
+                  class="min-w-0 first:pr-3 last:border-l last:border-neutral-300 last:pl-3"
+                >
+                  <legend class="text-lg font-semibold">{label}</legend>
+
+                  <div class="mt-2 grid grid-cols-2 gap-2">
+                    <.input
+                      :for={action <- ["launch", "land"]}
+                      field={@form[field]}
+                      id={"flight_#{field}_#{action}"}
+                      type="radio"
+                      value={action}
+                      checked={@form[field].value == action}
+                      required={field == :last_action}
+                      label={String.capitalize(action)}
+                      label_class="flight-action-option flex min-h-9 w-full cursor-pointer items-center justify-center rounded-none px-2 py-1.5 text-sm font-medium outline-none focus:outline-none focus-visible:outline-none"
+                      class="sr-only"
+                    />
+                  </div>
+                </fieldset>
+              </div>
+
+              <fieldset class="flight-route-point-controls min-w-0">
+                <legend class="text-lg font-semibold">Add a route point</legend>
+
+                <div id="world-controls" class="mt-2 grid grid-cols-3 gap-2">
+                  <button
+                    :for={world <- ~w(earth moon mars)}
+                    id={"add-route-point-#{world}"}
+                    type="button"
+                    phx-click="add-route-point"
+                    phx-value-world={world}
+                    disabled={@form[:first_action].value == ""}
+                    aria-label={"Add #{String.capitalize(world)}"}
+                    class="flight-button flight-world-button flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-none px-2 py-1 text-sm font-semibold active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <.icon name="hero-plus" class="flight-add-icon size-5 shrink-0" />
+
+                    <.world world={world} layout={:compact} />
+                  </button>
+                </div>
+              </fieldset>
+            </div>
+          <% end %>
+
+          <p
+            :if={@error}
+            id="flight-error"
+            role="alert"
+            class="rounded-none bg-[#fc3d21]/10 p-4 text-sm text-red-800"
+          >
+            {@error}
+          </p>
+        </.form>
+      </section>
+
+      <section
+        class="min-w-0 px-4 py-3 sm:px-3"
+        aria-labelledby="actions-title"
+      >
+        <div class="bg-[#e8e8e8] p-4">
+          <div class="border-b border-black/20 pb-3">
+            <h2 id="actions-title" class="text-lg font-semibold text-neutral-700">Route</h2>
+          </div>
+
+          <p
+            :if={@actions == []}
+            id="actions-empty"
+            class="mt-4 rounded-none text-sm text-neutral-600"
+          >
+            Choose a world to get started.
+          </p>
+
+          <ol
+            :if={@actions != []}
+            id="actions"
+            phx-hook=".Sortable"
+            class="mt-4 max-h-[60vh] xl:max-h-[calc(100dvh-17rem)] space-y-2 overflow-y-auto pr-2"
+          >
+            <.route_point
+              :for={actions <- Enum.chunk_by(@actions, & &1.route_point_id)}
+              actions={actions}
+            />
+          </ol>
+        </div>
+      </section>
+
+      <aside class="min-w-0 px-4 py-3 sm:px-3">
+        <section
+          class="min-w-0 bg-[#e8e8e8] p-4"
+          aria-labelledby="result-title"
+          aria-live="polite"
+        >
+          <p
+            id="result-title"
+            class="border-b border-black/20 pb-4 text-lg font-semibold text-neutral-700"
+          >
+            Fuel at departure
+          </p>
+
+          <%= if @result != nil do %>
+            <p
+              id="fuel-result"
+              data-fuel={@result}
+              class="mt-4 text-4xl font-semibold tracking-tight text-neutral-900 [overflow-wrap:anywhere] 2xl:text-5xl"
+            >
+              {format_fuel(@result)} <span class="text-xl text-neutral-600">kg</span>
+            </p>
+            <p class="mt-3 text-sm leading-6 text-neutral-600">
+              Includes fuel for every action and the additional fuel needed to carry it.
+            </p>
+          <% else %>
+            <p
+              id="fuel-placeholder"
+              class="mt-4 text-2xl font-medium text-neutral-800 [overflow-wrap:anywhere]"
+            >
+              {@placeholder}
+            </p>
+          <% end %>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <script :type={Phoenix.LiveView.ColocatedHook} name=".Sortable">
+    export default {
+      mounted() {
+        this.draggedId = null
+
+        this.el.addEventListener("dragstart", event => {
+          const item = event.target.closest("[data-route-point-id]")
+          if (!item) return
+          this.draggedId = item.dataset.routePointId
+          event.dataTransfer.effectAllowed = "move"
+          item.classList.add("opacity-50")
+        })
+
+        this.el.addEventListener("dragend", event => {
+          event.target.closest("[data-route-point-id]")?.classList.remove("opacity-50")
+          this.draggedId = null
+        })
+
+        this.el.addEventListener("dragover", event => {
+          if (event.target.closest("[data-route-point-id]")) event.preventDefault()
+        })
+
+        this.el.addEventListener("drop", event => {
+          const item = event.target.closest("[data-route-point-id]")
+          if (!item || !this.draggedId) return
+          event.preventDefault()
+          this.pushEvent("reorder-route", {from: this.draggedId, to: item.dataset.routePointId})
+        })
+      }
+    }
+  </script>
+</Layouts.app>

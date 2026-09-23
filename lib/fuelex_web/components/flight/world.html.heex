@@ -1,0 +1,21 @@
+<% {icon, color} = world_style(@world) %>
+<%= case @layout do %>
+  <% :stacked -> %>
+    <div class={[
+      "flex flex-col items-center gap-1 py-2 text-sm font-semibold",
+      color
+    ]}>
+      <.icon name={icon} class="size-5" />
+      <%= if @show_name do %>
+        {String.capitalize(@world)}
+      <% end %>
+    </div>
+  <% :compact -> %>
+    <div class="flex items-center gap-1.5">
+      <.icon name={icon} class={["size-4", color]} />
+      <span :if={@show_name}>{String.capitalize(@world)}</span>
+    </div>
+  <% :inline -> %>
+    <.icon name={icon} class={["size-5 shrink-0", color]} />
+    <span :if={@show_name} class="w-10">{String.capitalize(@world)}</span>
+<% end %>

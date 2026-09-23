@@ -1,0 +1,61 @@
+<% route_point = hd(@actions) %>
+<li
+  id={"route-point-#{route_point.route_point_id}"}
+  data-route-point-id={route_point.route_point_id}
+  draggable="true"
+  class={[
+    "flex min-w-0 cursor-grab items-center gap-2.5 rounded-none px-3 py-1.5 transition-colors active:cursor-grabbing",
+    if(rem(route_point.route_point_index, 2) == 0,
+      do: "bg-[#e6e6e6]",
+      else: "bg-[#f2f2f2]"
+    )
+  ]}
+>
+  <.icon
+    name="hero-bars-3"
+    class="size-5 shrink-0 text-neutral-400"
+  />
+
+  <div class="flex shrink-0 items-center gap-2 text-sm font-medium text-neutral-800">
+    <span class="w-4 tabular-nums">{route_point.route_point_index + 1}.</span>
+    <.world world={route_point.world} />
+  </div>
+
+  <div class="flex shrink-0 items-center gap-1.5">
+    <div
+      :for={action <- @actions}
+      id={"action-#{action.id}"}
+      data-action={action.action}
+      data-world={action.world}
+      class={[
+        "flex shrink-0 items-center gap-1.5 rounded-none px-2.5 py-1.5 text-sm",
+        if(rem(route_point.route_point_index, 2) == 0,
+          do: "bg-[#d4d4d4] text-neutral-900",
+          else: "bg-[#e3e3e3] text-neutral-800"
+        )
+      ]}
+    >
+      <.icon
+        name={
+          if(action.action == "launch",
+            do: "hero-arrow-up",
+            else: "hero-arrow-down"
+          )
+        }
+        class="size-4"
+      />
+      {String.capitalize(action.action)}
+    </div>
+  </div>
+
+  <button
+    id={"remove-route-point-#{route_point.route_point_id}"}
+    type="button"
+    phx-click="remove-route-point"
+    phx-value-id={route_point.route_point_id}
+    aria-label={"Remove #{String.capitalize(route_point.world)} route point"}
+    class="ml-auto shrink-0 cursor-pointer rounded-none bg-transparent p-1.5 text-neutral-600 transition-colors hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176b9b]"
+  >
+    <.icon name="hero-x-mark" class="size-5" />
+  </button>
+</li>

@@ -39,7 +39,10 @@ defmodule FuelexWeb.Layouts do
     <div class="min-h-screen bg-white text-neutral-800">
       <header class="bg-[#101316] text-white">
         <div class="mx-auto flex max-w-[94rem] items-center justify-between px-4 py-3">
-          <.link navigate={~p"/"} class="flex items-center gap-3 text-lg font-semibold tracking-wide transition-colors hover:text-sky-200">
+          <.link
+            navigate={~p"/"}
+            class="flex items-center gap-3 text-lg font-semibold tracking-wide transition-colors hover:text-sky-200"
+          >
             <.icon name="hero-rocket-launch" class="size-8 text-[#2491cb]" /> FUELEX
           </.link>
         </div>
@@ -54,7 +57,7 @@ defmodule FuelexWeb.Layouts do
 
     <.flash_group flash={@flash} />
     """
-end
+  end
 
   @doc """
   Shows the flash group with standard titles and content.

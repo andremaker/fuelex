@@ -6,7 +6,7 @@ defmodule FuelexWeb.FlightLiveTest do
   test "starts with mass and six starting actions without default endpoints", %{conn: conn} do
     {:ok, view, _} = live(conn, ~p"/")
     assert has_element?(view, "#flight-form input[name='flight[mass]']")
-    assert has_element?(view, "#first-visit")
+    assert has_element?(view, "#first-action")
     refute has_element?(view, "#action-controls")
     refute has_element?(view, "#world-controls")
     refute has_element?(view, "#flight-form select")
@@ -18,13 +18,13 @@ defmodule FuelexWeb.FlightLiveTest do
     end
   end
 
-  test "each starting button sets the first visit and synchronizes the radios", %{conn: conn} do
+  test "each starting button sets the first action and synchronizes the radios", %{conn: conn} do
     for world <- ~w(earth moon mars), action <- ~w(launch land) do
       {:ok, view, _} = live(conn, ~p"/")
       change(view, %{mass: "1000"})
       start_flight(view, action, world)
       assert_steps(view, [{String.to_existing_atom(action), String.to_existing_atom(world)}])
-      refute has_element?(view, "#first-visit")
+      refute has_element?(view, "#first-action")
       assert has_element?(view, "#world-controls")
       assert has_element?(view, "#flight_first_action_#{action}[type='radio'][checked]")
       refute has_element?(view, "#flight_last_action input[checked]")
@@ -40,7 +40,7 @@ defmodule FuelexWeb.FlightLiveTest do
     {:ok, view, _} = live(conn, ~p"/")
     render_click(view, "start-flight", %{"world" => "venus", "action" => "launch"})
     render_click(view, "start-flight", %{"world" => "earth", "action" => "orbit"})
-    render_click(view, "add-destiny", %{"world" => "earth"})
+    render_click(view, "add-route-point", %{"world" => "earth"})
     assert_steps(view, [])
     change(view, %{mass: "-10"})
     assert has_element?(view, "#flight-error")
@@ -56,27 +56,32 @@ defmodule FuelexWeb.FlightLiveTest do
     assert_incomplete(view)
   end
 
-  test "removing the last visit restores cards and starting again preserves last action", %{
+  test "removing the last route point restores cards and starting again preserves last action", %{
     conn: conn
   } do
     {:ok, view, _} = live(conn, ~p"/")
     start_flight(view, "launch", "earth")
     change(view, %{mass: "1000", last_action: "launch"})
 
-    [visit_id] =
+    [route_point_id] =
       view
       |> render()
       |> LazyHTML.from_fragment()
       |> LazyHTML.query("#actions > li")
-      |> LazyHTML.attribute("data-visit-id")
+      |> LazyHTML.attribute("data-route-point-id")
 
     change(view, %{first_action: "land"})
-    assert has_element?(view, "#actions > li[data-visit-id='#{visit_id}'] [data-action='land']")
+
+    assert has_element?(
+             view,
+             "#actions > li[data-route-point-id='#{route_point_id}'] [data-action='land']"
+           )
+
     assert has_element?(view, "#flight_first_action_land[checked]")
     render_click(view, "start-flight", %{"world" => "mars", "action" => "launch"})
     assert_steps(view, land: :earth, launch: :earth)
-    remove_visit(view, 1)
-    assert has_element?(view, "#first-visit")
+    remove_route_point(view, 1)
+    assert has_element?(view, "#first-action")
     refute has_element?(view, "#action-controls")
     start_flight(view, "land", "moon")
     assert_steps(view, land: :moon, launch: :moon)
@@ -131,7 +136,7 @@ defmodule FuelexWeb.FlightLiveTest do
     add_worlds(view, ~w(moon))
     assert_steps(view, launch: :earth, land: :moon)
     assert_fuel(view, 1000, launch: :earth, land: :moon)
-    remove_visit(view, 2)
+    remove_route_point(view, 2)
     assert_steps(view, launch: :earth)
     assert_incomplete(view)
 
@@ -166,20 +171,20 @@ defmodule FuelexWeb.FlightLiveTest do
     end
   end
 
-  test "removing visits reconnects the route and preserves endpoint choices", %{conn: conn} do
+  test "removing route points reconnects the route and preserves endpoint choices", %{conn: conn} do
     {:ok, view, _} = live(conn, ~p"/")
     start_flight(view, "land", "earth")
     change(view, %{mass: "1000", last_action: "launch"})
     add_worlds(view, ~w(moon mars))
-    remove_visit(view, 2)
+    remove_route_point(view, 2)
     assert_steps(view, land: :earth, launch: :earth, land: :mars, launch: :mars)
     assert_fuel(view, 1000, land: :earth, launch: :earth, land: :mars, launch: :mars)
-    remove_visit(view, 2)
+    remove_route_point(view, 2)
     assert_steps(view, land: :earth, launch: :earth)
     add_worlds(view, ~w(moon))
-    remove_visit(view, 1)
+    remove_route_point(view, 1)
     assert_steps(view, land: :moon, launch: :moon)
-    remove_visit(view, 1)
+    remove_route_point(view, 1)
     assert_steps(view, [])
     assert has_element?(view, "#actions-empty")
     assert has_element?(view, "#fuel-placeholder", "Add actions to your flight")
@@ -192,11 +197,11 @@ defmodule FuelexWeb.FlightLiveTest do
     change(view, %{last_action: "land"})
     add_worlds(view, ~w(moon moon))
     assert_steps(view, launch: :moon, land: :moon, launch: :moon, land: :moon)
-    remove_visit(view, 2)
+    remove_route_point(view, 2)
     assert_steps(view, launch: :moon, land: :moon)
-    remove_visit(view, 1)
+    remove_route_point(view, 1)
     assert_steps(view, launch: :moon)
-    remove_visit(view, 1)
+    remove_route_point(view, 1)
     assert_steps(view, [])
   end
 
@@ -242,15 +247,15 @@ defmodule FuelexWeb.FlightLiveTest do
   defp change(view, params), do: view |> form("#flight-form", flight: params) |> render_change()
 
   defp add_worlds(view, worlds) do
-    for world <- worlds, do: view |> element("#add-destiny-#{world}") |> render_click()
+    for world <- worlds, do: view |> element("#add-route-point-#{world}") |> render_click()
   end
 
-  defp remove_visit(view, position) do
+  defp remove_route_point(view, position) do
     [button_id] =
       view
       |> render()
       |> LazyHTML.from_fragment()
-      |> LazyHTML.query("#actions > li[data-visit-id] > button[phx-click='remove-world']")
+      |> LazyHTML.query("#actions > li[data-route-point-id] > button[phx-click='remove-route-point']")
       |> Enum.at(position - 1)
       |> LazyHTML.attribute("id")
 
