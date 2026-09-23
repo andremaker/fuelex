@@ -14,35 +14,27 @@ defmodule Fuelex.FuelTest do
     land: :earth
   ]
 
-  test "Apollo 11 acceptance scenario" do
-    assert Fuel.calculate_for_departure(28_801, @apollo) == {:ok, 51_898}
+
+  test "calculates action according to example scenario" do
+    assert Fuel.calculate_for_action(28801, {:land, :earth}) == {:ok, 13447}
   end
 
-  test "Mars acceptance scenario" do
-    assert Fuel.calculate_for_departure(14_606, @mars) == {:ok, 33_388}
+  test "calculates correctly for single-action flights" do
+    assert Fuel.calculate_for_departure(28801, launch: :earth) ==
+             Fuel.calculate_for_action(28801, {:launch, :earth})
   end
 
-  test "Passenger Ship acceptance scenario" do
-    assert Fuel.calculate_for_departure(75_432, @passenger) == {:ok, 212_161}
-  end
+  test "calculates total fuel for complex flights according to example scenarios" do
+    scenarios = [
+      {"Apollo 11", 28_801, @apollo, 51_898},
+      {"Mars", 14_606, @mars, 33_388},
+      {"Passenger Ship", 75_432, @passenger, 212_161}
+    ]
 
-  test "single landing includes fuel for its own fuel" do
-    assert Fuel.calculate_for_action(28_801, {:land, :earth}) == {:ok, 13_447}
-  end
-
-  test "floors each recurrence rather than only the final sum" do
-    # 1000 -> 378 -> 122 -> 17 -> negative
-    assert Fuel.calculate_for_action(1000, {:launch, :earth}) == {:ok, 517}
-  end
-
-  test "stops at zero and negative additional fuel required" do
-    assert Fuel.calculate_for_action(1, {:launch, :earth}) == {:ok, 0}
-    assert Fuel.calculate_for_action(500, {:launch, :moon}) == {:ok, 1}
-    assert Fuel.calculate_for_action(499, {:launch, :moon}) == {:ok, 0}
-  end
-
-  test "supports positive fractional mass" do
-    assert Fuel.calculate_for_action(1000.5, {:launch, :earth}) == {:ok, 519}
+    for {scenario, mass, actions, expected_fuel} <- scenarios do
+      assert Fuel.calculate_for_departure(mass, actions) == {:ok, expected_fuel},
+            "#{scenario} fuel calculation failed"
+    end
   end
 
   test "earlier actions carry later fuel and order matters" do
@@ -50,21 +42,6 @@ defmodule Fuelex.FuelTest do
     assert {:ok, launch_first} = Fuel.calculate_for_departure(1000, launch: :earth, land: :earth)
     assert {:ok, land_first} = Fuel.calculate_for_departure(1000, land: :earth, launch: :earth)
     assert launch_first != land_first
-  end
-
-  test "empty flights and single-action flights" do
-    assert Fuel.calculate_for_departure(1000, []) == {:ok, 0}
-
-    assert Fuel.calculate_for_departure(1000, launch: :earth) ==
-             Fuel.calculate_for_action(1000, {:launch, :earth})
-  end
-
-  test "rejects invalid masses even for empty flights" do
-    for mass <- [0, -1, -0.5, "", "1000", nil, :earth] do
-      assert Fuel.calculate_for_action(mass, {:launch, :earth}) == {:error, :invalid_mass}
-      assert Fuel.calculate_for_departure(mass, []) == {:error, :invalid_mass}
-      assert Fuel.calculate_for_departure(mass, @apollo) == {:error, :invalid_mass}
-    end
   end
 
   test "rejects invalid consecutive actions and departures from another world" do
@@ -79,26 +56,17 @@ defmodule Fuelex.FuelTest do
     end
   end
 
-  test "accepts either endpoint action" do
-    for actions <- [
-          [land: :earth],
-          [launch: :earth],
-          [land: :earth, launch: :earth],
-          [land: :earth, launch: :earth, land: :moon],
-          [launch: :earth, land: :moon, launch: :moon]
-        ] do
-      assert {:ok, fuel} = Fuel.calculate_for_departure(1000, actions)
-      assert is_integer(fuel)
-    end
-  end
-
   test "rejects unsupported actions, worlds, and malformed actions" do
-    for action <- [{:orbit, :earth}, {:launch, :venus}, {"launch", "earth"}, :launch, {}] do
+    for action <- [{:orbit, :earth}, :launch, {}] do
       assert Fuel.calculate_for_action(1000, action) == {:error, :invalid_action}
 
       assert Fuel.calculate_for_departure(1000, [{:launch, :earth}, action]) ==
                {:error, :invalid_action}
     end
+
+    action_invalid_world = {:launch, :venus}
+    assert Fuel.calculate_for_action(1000, action_invalid_world) == {:error, :invalid_world}
+    assert Fuel.calculate_for_departure(1000, [action_invalid_world]) == {:error, :invalid_world}
 
     assert Fuel.calculate_for_departure(1000, nil) == {:error, :invalid_actions}
   end

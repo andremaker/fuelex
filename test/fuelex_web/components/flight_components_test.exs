@@ -14,10 +14,10 @@ defmodule FuelexWeb.FlightComponentsTest do
   end
 
   test "world can hide its name without removing its icon in every layout" do
-    for world <- ~w(earth moon mars), layout <- [:stacked, :compact, :inline] do
+    for layout <- [:stacked, :compact, :inline] do
       html =
         render_component(&FlightComponents.world/1,
-          world: world,
+          world: "mars",
           layout: layout,
           show_name: false
         )

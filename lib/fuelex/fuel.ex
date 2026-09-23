@@ -8,13 +8,14 @@ defmodule Fuelex.Fuel do
   @actions %{launch: {42, 33}, land: {33, 42}}
 
   @type action :: {:launch | :land, :earth | :moon | :mars}
-  @type error :: :invalid_mass | :invalid_action | :invalid_actions | :invalid_sequence
+  @type error :: :invalid_mass | :invalid_action | :invalid_actions | :invalid_world | :invalid_sequence
 
   @doc "Fuel for one action, including the fuel needed to carry its own fuel."
   @spec calculate_for_action(number(), action()) :: {:ok, non_neg_integer()} | {:error, error()}
   def calculate_for_action(mass, action) do
     with :ok <- validate_mass(mass),
-         :ok <- validate_action(action) do
+         :ok <- validate_action(action),
+         :ok <- validate_world(action) do
       {:ok, action_fuel(mass, action)}
     end
   end
@@ -45,16 +46,18 @@ defmodule Fuelex.Fuel do
   defp validate_mass(mass) when is_number(mass) and mass > 0, do: :ok
   defp validate_mass(_), do: {:error, :invalid_mass}
 
-  defp validate_action({action, world})
-       when is_map_key(@actions, action) and is_map_key(@gravities, world),
-       do: :ok
-
+  defp validate_action({action, _world}) when is_map_key(@actions, action), do: :ok
   defp validate_action(_), do: {:error, :invalid_action}
+
+  defp validate_world({_action, world}) when is_map_key(@gravities, world), do: :ok
+  defp validate_world(_), do: {:error, :invalid_world}
 
   defp validate_actions(actions) when is_list(actions) do
     Enum.reduce_while(actions, :ok, fn action, :ok ->
-      case validate_action(action) do
-        :ok -> {:cont, :ok}
+      with :ok <- validate_action(action),
+           :ok <- validate_world(action) do
+        {:cont, :ok}
+      else
         error -> {:halt, error}
       end
     end)
