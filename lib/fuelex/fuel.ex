@@ -1,21 +1,21 @@
 defmodule Fuelex.Fuel do
   @moduledoc """
-  Pure fuel calculations in kilograms. Steps are `{action, world}` tuples in
-  chronological order. Fuel for later steps is carried through earlier steps.
+  Pure fuel calculations in kilograms. Actions are `{action, world}` tuples in
+  chronological order. Fuel for later actions is carried through earlier actions.
   """
 
   @gravities %{earth: 9807, moon: 1620, mars: 3711}
   @actions %{launch: {42, 33}, land: {33, 42}}
 
-  @type step :: {:launch | :land, :earth | :moon | :mars}
-  @type error :: :invalid_mass | :invalid_step | :invalid_steps | :invalid_sequence
+  @type action :: {:launch | :land, :earth | :moon | :mars}
+  @type error :: :invalid_mass | :invalid_action | :invalid_actions | :invalid_sequence
 
   @doc "Fuel for one action, including the fuel needed to carry its own fuel."
-  @spec action(number(), step()) :: {:ok, non_neg_integer()} | {:error, error()}
-  def action(mass, step) do
+  @spec calculate_for_action(number(), action()) :: {:ok, non_neg_integer()} | {:error, error()}
+  def calculate_for_action(mass, action) do
     with :ok <- validate_mass(mass),
-         :ok <- validate_step(step) do
-      {:ok, action_fuel(mass, step)}
+         :ok <- validate_action(action) do
+      {:ok, action_fuel(mass, action)}
     end
   end
 
@@ -25,16 +25,17 @@ defmodule Fuelex.Fuel do
   Actions must alternate: a landing must be followed by a launch from that
   same world before another landing.
   """
-  @spec flight(number(), [step()]) :: {:ok, non_neg_integer()} | {:error, error()}
-  def flight(mass, steps) do
+  @spec calculate_for_departure(number(), [action()]) ::
+          {:ok, non_neg_integer()} | {:error, error()}
+  def calculate_for_departure(mass, actions) do
     with :ok <- validate_mass(mass),
-         :ok <- validate_steps(steps),
-         :ok <- validate_sequence(steps) do
+         :ok <- validate_actions(actions),
+         :ok <- validate_sequence(actions) do
       fuel =
-        steps
+        actions
         |> Enum.reverse()
-        |> Enum.reduce(0, fn step, later_fuel ->
-          later_fuel + action_fuel(mass + later_fuel, step)
+        |> Enum.reduce(0, fn action, later_fuel ->
+          later_fuel + action_fuel(mass + later_fuel, action)
         end)
 
       {:ok, fuel}
@@ -44,22 +45,22 @@ defmodule Fuelex.Fuel do
   defp validate_mass(mass) when is_number(mass) and mass > 0, do: :ok
   defp validate_mass(_), do: {:error, :invalid_mass}
 
-  defp validate_step({action, world})
+  defp validate_action({action, world})
        when is_map_key(@actions, action) and is_map_key(@gravities, world),
        do: :ok
 
-  defp validate_step(_), do: {:error, :invalid_step}
+  defp validate_action(_), do: {:error, :invalid_action}
 
-  defp validate_steps(steps) when is_list(steps) do
-    Enum.reduce_while(steps, :ok, fn step, :ok ->
-      case validate_step(step) do
+  defp validate_actions(actions) when is_list(actions) do
+    Enum.reduce_while(actions, :ok, fn action, :ok ->
+      case validate_action(action) do
         :ok -> {:cont, :ok}
         error -> {:halt, error}
       end
     end)
   end
 
-  defp validate_steps(_), do: {:error, :invalid_steps}
+  defp validate_actions(_), do: {:error, :invalid_actions}
 
   defp validate_sequence([]), do: :ok
   defp validate_sequence([_]), do: :ok

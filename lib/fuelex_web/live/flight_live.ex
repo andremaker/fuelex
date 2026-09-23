@@ -40,7 +40,8 @@ defmodule FuelexWeb.FlightLive do
 
   def handle_event("start-flight", _params, socket), do: {:noreply, socket}
 
-  def handle_event("add-route-point", %{"world" => world}, socket) when is_map_key(@worlds, world) do
+  def handle_event("add-route-point", %{"world" => world}, socket)
+      when is_map_key(@worlds, world) do
     if socket.assigns.actions != [] and
          is_map_key(@actions, socket.assigns.form.params["first_action"]) do
       route_point = %{id: System.unique_integer([:positive]), world: world}
@@ -156,7 +157,7 @@ defmodule FuelexWeb.FlightLive do
   end
 
   defp calculate_fuel(socket, mass_value) do
-    steps =
+    actions =
       Enum.map(
         socket.assigns.actions,
         &{Map.fetch!(@actions, &1.action), Map.fetch!(@worlds, &1.world)}
@@ -164,7 +165,7 @@ defmodule FuelexWeb.FlightLive do
 
     result =
       with {mass, ""} <- parse_mass(mass_value) do
-        Fuel.flight(mass, steps)
+        Fuel.calculate_for_departure(mass, actions)
       else
         _ -> {:error, :invalid_mass}
       end
@@ -178,10 +179,10 @@ defmodule FuelexWeb.FlightLive do
           socket.assigns.form.params["last_action"] in [nil, ""] ->
             assign(socket, placeholder: "Choose last action")
 
-          steps == [] ->
+          actions == [] ->
             assign(socket, placeholder: "Add actions to your flight")
 
-          match?([{:launch, _}], steps) and socket.assigns.form.params["last_action"] == "land" ->
+          match?([{:launch, _}], actions) and socket.assigns.form.params["last_action"] == "land" ->
             assign(socket, placeholder: "Add a landing destination")
 
           true ->
